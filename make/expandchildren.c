@@ -219,13 +219,19 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 	 * expansion. If the result contains wildcards, they'll be gotten to
 	 * later since the resulting words are tacked on to the end of the
 	 * children list.  */
-	if (strchr(cgn->name, '$') != NULL)
+
+	printf("- ExpandChildren: %s\n", cgn->node_name);
+	if (strchr(cgn->name, '$') != NULL) {
+		printf("\tExpanding variable children for %s\n", cgn->node_name);
 		ExpandVarChildren(ln, cgn, pgn);
-	else if (Dir_HasWildcards(cgn->name))
+	} else if (Dir_HasWildcards(cgn->name)) {
+		printf("\tExpanding wildcard children for %s\n", cgn->node_name);
 		ExpandWildChildren(ln, cgn, pgn);
-	else
+	} else {
+		printf("\tNo expansion needed for %s\n", cgn->node_name);
 	    /* Third case: nothing to expand.  */
 		return;
+	}
 
 	/* Since the source was expanded, remove it from the list of children to
 	 * keep it from being processed.  */
@@ -233,13 +239,43 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 	Lst_Remove(&pgn->children, ln);
 }
 
+#include <cond.h>
+
 void
 expand_children_from(GNode *parent, LstNode from)
 {
+	printf("- expand_children_from: %s\n", parent->node_name);
+	printf("\tNumber of children left: %d\n", parent->children_left);
 	LstNode np, ln;
+
+
+	// If not children at the beginning, try to find some in pattern rules
+	if(parent->children_left == 0){
+		printf("Try to find pattern\n");
+		GNode *matching;
+		char *expended = NULL;
+		if((matching = Targ_FindPatternMatchingNode(parent->node_name, parent->node_ename, &expended))){
+			printf("\tCHILDREN FOUND \n");
+			// replace all % pattern of matching node with parent node
+			// and add it to the parent children list
+			matching->name[0] = parent->name[0];
+			matching->node_name = strdup(parent->node_name);
+			// print in green "New node added + matching->node_name"
+			printf("\033[1;32mNew node added: %s\033[0m\n", matching->node_name);
+			Lst_AddNew(&parent->children, matching);
+			parent->children_left++;
+			return;
+		}
+
+        printf("\tNo children found\n");
+
+		// else print in red "No children found"
+		printf("\033[1;31mNo children found\033[0m\n");
+	}
 
 	for (ln = from; ln != NULL; ln = np) {
 		np = Lst_Adv(ln);
+		printf("\t\tExpanding children of %s\n", parent->node_name);
 		ExpandChildren(ln, parent);
 	}
 }

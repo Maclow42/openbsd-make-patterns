@@ -44,6 +44,9 @@ extern GNode *Targ_NewGNi(const char *, const char *);
 extern GNode *Targ_FindNodei(const char *, const char *, int);
 #define Targ_FindNode(n, i)	Targ_FindNodei(n, NULL, i)
 
+extern bool match_pattern(const char *name, const char *ename, const char *pattern, const char *epattern, char** expended);
+extern GNode *Targ_FindPatternMatchingNode(const char *name, const char *ename, char** expended);
+
 
 
 /* helper for constant nodes */

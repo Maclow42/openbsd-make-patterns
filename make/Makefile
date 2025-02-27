@@ -17,8 +17,8 @@ HOSTCFLAGS+=${CDEFS}
 SRCS=	arch.c buf.c cmd_exec.c compat.c cond.c dir.c direxpand.c dump.c \
 	engine.c enginechoice.c error.c expandchildren.c \
 	for.c init.c job.c lowparse.c main.c make.c memory.c parse.c \
-	parsevar.c str.c stats.c suff.c targ.c targequiv.c timestamp.c \
-	var.c varmodifiers.c varname.c
+	parsevar.c str.c stats.c suff.c targ.c targequiv.c \
+	timestamp.c var.c varmodifiers.c varname.c
 
 .include "${.CURDIR}/lst.lib/Makefile.inc"
 

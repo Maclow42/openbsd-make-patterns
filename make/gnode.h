@@ -38,6 +38,7 @@
 #include "symtable.h"
 #endif
 #include <assert.h>
+#include <string.h>
 
 /*-
  * The structure for an individual graph node. Each node has a lot of
@@ -154,6 +155,10 @@ struct GNode_ {
 
     bool in_cycle;	/* cycle detection */
     char name[1];	/* The target's name */
+
+	char *node_name; /* The target's name */
+	char *node_ename; /* The target's end name */
+	bool is_pattern; /* true if the target is a pattern target */
 };
 
 struct command
