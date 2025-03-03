@@ -8,7 +8,7 @@ file.out: file1.out file2.out
 	cat file1.out | tr '\n' ' ' > $@; cat file2.out >> $@ 
 
 %.out: %.in
-	cat $< > $@
+	cp $? $@
 
 clean:
 	rm -f file.out file1.out file2.out

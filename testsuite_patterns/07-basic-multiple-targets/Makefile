@@ -5,7 +5,7 @@
 all: file.out
 
 file.out : file1.tmp file2.tmp
-	cat $^ > $@
+	cat $? > $@
 
 %1.tmp %2.tmp: %.sh
 	ksh ./$<

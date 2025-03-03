@@ -1,12 +1,10 @@
-# Goal: observe behavior of %-%.in
-# Subtility: the second % is useless
-#
-# Explanation: Use two % in target do not work (tested) and use a %-file.in instead of file-%.in do not work nor with file-file.in
+# Goal: Create a file.out file from a file.in file
+# Subtility: dependency is explicitly defined
 
 all: file.out
 
-%.out : %-%.in
-	cp $? $@
+%.out : file.in
+	cp file.in $@
 
 clean:
 	rm -f file.out

@@ -4,7 +4,7 @@
 all: file.out
 
 %.out : file.in
-	cp file.in file.out
+	cp $? file.out
 
 clean:
 	rm -f file.out

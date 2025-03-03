@@ -3,7 +3,7 @@
 all: file.out
 
 %.out: ./src/tmp/%.tmp
-	cat $^ | tr '\n' ' ' > $@
+	cat $? | tr '\n' ' ' > $@
 
 %.tmp:
 	echo -n "This is a test file." > $@

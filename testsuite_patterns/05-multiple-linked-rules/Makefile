@@ -7,11 +7,11 @@
 all: file.out file.tmp
 
 %.out: %.tmp
-	cat $< > $@
+	cp $? $@
 	echo -n " file." >> $@
 
 %.tmp: %.in
-	cat $< | tr '\n' ' ' > $@
+	cat $? | tr '\n' ' ' > $@
 	echo -n "a test" >> $@
 
 clean:
