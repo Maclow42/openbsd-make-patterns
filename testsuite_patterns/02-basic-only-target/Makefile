@@ -4,7 +4,7 @@
 all: file.out
 
 %.out : file.in
-	cat $< > $@
+	cat $^ > $@
 
 clean:
 	rm -f file.out

@@ -4,11 +4,10 @@
 all: file.out
 
 %.out : %.in
-	cat $< > $@
+	cat $^ > $@
 
 clean:
 	rm -f file.out
-
 
 # ----- test -----
 PHONY: test
