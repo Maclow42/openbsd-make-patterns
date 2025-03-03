@@ -3,7 +3,7 @@
 
 all: file.out
 
-%out : file.in
+%.out : file.in
 	cp file.in file.out
 
 clean:
