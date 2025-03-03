@@ -47,9 +47,9 @@ RunTestSuite()
 
         # Run make and check output
         $MAKE_BINARY clean > /dev/null
-        $MAKE_BINARY -r > /dev/null
-        # if result of make test displays [OK] in stdout
-        if [ "$($MAKE_BINARY test)" = "[OK]" ]
+        $MAKE_BINARY -r > /dev/null 2>&1
+        # if last 4 characters of make test output are [OK]
+        if [ "$($MAKE_BINARY test | tail -c 5)" = "[OK]" ]
         then
             echo -e "\033[32m[OK] $subdir\033[0m"
             successes=$((successes+1))
