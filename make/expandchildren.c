@@ -219,19 +219,13 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 	 * expansion. If the result contains wildcards, they'll be gotten to
 	 * later since the resulting words are tacked on to the end of the
 	 * children list.  */
-
-	printf("- ExpandChildren: %s\n", cgn->node_name);
-	if (strchr(cgn->name, '$') != NULL) {
-		printf("\tExpanding variable children for %s\n", cgn->node_name);
+	if (strchr(cgn->name, '$') != NULL)
 		ExpandVarChildren(ln, cgn, pgn);
-	} else if (Dir_HasWildcards(cgn->name)) {
-		printf("\tExpanding wildcard children for %s\n", cgn->node_name);
+	else if (Dir_HasWildcards(cgn->name))
 		ExpandWildChildren(ln, cgn, pgn);
-	} else {
-		printf("\tNo expansion needed for %s\n", cgn->node_name);
+	else
 	    /* Third case: nothing to expand.  */
 		return;
-	}
 
 	/* Since the source was expanded, remove it from the list of children to
 	 * keep it from being processed.  */
@@ -239,12 +233,10 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 	Lst_Remove(&pgn->children, ln);
 }
 
-#include <cond.h>
-
 void
 expand_children_from(GNode *parent, LstNode from)
 {
-	printf("- expand_children_from: %s\n", parent->node_name);
+	printf("- expand_children_from: %s\n", parent->name);
 	printf("\tNumber of children left: %d\n", parent->children_left);
 	LstNode np, ln;
 
@@ -254,14 +246,18 @@ expand_children_from(GNode *parent, LstNode from)
 		printf("Try to find pattern\n");
 		GNode *matching;
 		char *expended = NULL;
-		if((matching = Targ_FindPatternMatchingNode(parent->node_name, parent->node_ename, &expended))){
+		if((matching = Targ_FindPatternMatchingNode(parent->name, &expended))){
 			printf("\tCHILDREN FOUND \n");
 			// replace all % pattern of matching node with parent node
 			// and add it to the parent children list
-			matching->name[0] = parent->name[0];
-			matching->node_name = strdup(parent->node_name);
+            int i = 0;
+            while(*(parent->name + i)){
+                *(matching->name+i) = *(parent->name + i);
+                i++;
+            }
+            matching->name[i] = '\0';
 			// print in green "New node added + matching->node_name"
-			printf("\033[1;32mNew node added: %s\033[0m\n", matching->node_name);
+			printf("\033[1;32mNew node added: %s\033[0m\n", matching->name);
 			Lst_AddNew(&parent->children, matching);
 			parent->children_left++;
 			return;
@@ -275,7 +271,7 @@ expand_children_from(GNode *parent, LstNode from)
 
 	for (ln = from; ln != NULL; ln = np) {
 		np = Lst_Adv(ln);
-		printf("\t\tExpanding children of %s\n", parent->node_name);
+		printf("\t\tExpanding children of %s\n", parent->name);
 		ExpandChildren(ln, parent);
 	}
 }
