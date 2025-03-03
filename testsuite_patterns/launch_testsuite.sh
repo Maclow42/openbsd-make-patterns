@@ -11,10 +11,12 @@
 # Print usage function
 PrintUsage()
 {
-    echo "Usage: ./launch_testsuite.sh"
+    echo "Usage: ./launch_testsuite.sh [-b binary]"
     echo "Run this script in the root directory of the testsuite."
     echo "It will run the testsuite and print the results."
     echo ""
+    echo "Options:"
+    echo "  -b binary   Specify the make binary to use (default: /bin/make)"
 }
 
 # Main function RunTestSuite
@@ -44,10 +46,10 @@ RunTestSuite()
         fi
 
         # Run make and check output
-        gmake clean > /dev/null
-        gmake -r > /dev/null
+        $MAKE_BINARY clean > /dev/null
+        $MAKE_BINARY -r > /dev/null
         # if result of make test displays [OK] in stdout
-        if [ "$(gmake test)" = "[OK]" ]
+        if [ "$($MAKE_BINARY test)" = "[OK]" ]
         then
             echo -e "\033[32m[OK] $subdir\033[0m"
             successes=$((successes+1))
@@ -56,7 +58,7 @@ RunTestSuite()
         fi
 
         # Clean up
-        make clean > /dev/null
+        $MAKE_BINARY clean > /dev/null
 
         # cd out of subdir
         cd ..
@@ -75,16 +77,37 @@ RunTestSuite()
 }
 
 main(){
+    MAKE_BINARY="/usr/local/bin/gmake"
+
+    while getopts ":b:h" opt; do
+        case $opt in
+            b)
+                MAKE_BINARY=$OPTARG
+                ;;
+            h)
+                PrintUsage
+                exit 0
+                ;;
+            \?)
+                echo "Invalid option: -$OPTARG" >&2
+                PrintUsage
+                exit 1
+                ;;
+            :)
+                echo "Option -$OPTARG requires an argument." >&2
+                PrintUsage
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND -1))
+
     if [ $# -ne 0 ]
     then
         PrintUsage
         exit 1
     fi
-    if [ "$1" = "-h" ] || [ "$1" = "--help" ]
-    then
-        PrintUsage
-        exit 0
-    fi
+
     RunTestSuite
 }
 
