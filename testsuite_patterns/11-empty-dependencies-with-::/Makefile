@@ -6,7 +6,7 @@ file.out:
 	echo -n "This is a test file." > $@
 
 clean:
-	rm -f file.out
+	rm -f file.out clean test
 
 # ----- test -----
 PHONY: test

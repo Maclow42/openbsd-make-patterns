@@ -1,10 +1,14 @@
 # Goal: Create a file.out file from a file.in file
-# Subtility: dependency is explicitly defined
+# Subtility: veridy that a corresponding non-pattern rule is preferred over a pattern rule
 
 all: file.out
 
 %.out : file.in
-	cp file.in $@
+
+file.out : file.in
+	cat $? > $@
+
+%.out : file.in
 
 clean:
 	rm -f file.out
