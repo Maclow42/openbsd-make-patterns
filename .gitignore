@@ -1,3 +1,10 @@
+make/condhashconsts.h
+make/generate
+make/name
+make/nodehashconsts.h
+make/varhashconsts.h
 *.d
 *.o
 *.vscode
+*make
+*make.core
