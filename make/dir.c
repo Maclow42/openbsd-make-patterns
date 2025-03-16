@@ -221,6 +221,9 @@ static void add_file(struct PathEntry *, const char *);
 static char *find_file_hashi(struct PathEntry *, const char *, const char *,
     uint32_t);
 
+static char *find_file_hashi_with_pattern(struct PathEntry *p, const char *pattern, 
+    uint32_t hv);
+
 /* stamp = find_stampi(name, end): look for (name, end) in the global
  *	cache. */
 static struct file_stamp *find_stampi(const char *, const char *);
@@ -289,7 +292,33 @@ find_file_hashi(struct PathEntry *p, const char *file, const char *efile,
 {
 	struct ohash 	*h = &p->files;
 
+    if (strchr(file, '%') != NULL) {
+        char *result = find_file_hashi_with_pattern(dot, file, hv);
+		printf("find_file_hashi: Matched file: %s\n", result); 
+        if(result)
+            return result;
+    }
+
 	return ohash_find(h, ohash_lookup_interval(h, file, efile, hv));
+}
+
+static char *
+find_file_hashi_with_pattern(struct PathEntry *p, const char *pattern, uint32_t hv)
+{
+    unsigned int search;
+    const char *entry;
+    char *matched_name;
+
+    for (entry = ohash_first(&p->files, &search); entry != NULL;
+         entry = ohash_next(&p->files, &search)) {
+        if (match_pattern(entry, pattern, &matched_name)) {
+            printf("find_file_hashi_with_pattern: Matched file: %s\n", entry);
+            free(matched_name);
+            return strdup(entry);   
+        }
+    }
+
+    return NULL;
 }
 
 static bool
@@ -444,15 +473,20 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 	/* Unless checkCurDirFirst is false, we always look for
 	 * the file in the current directory before anywhere else
 	 * and we always return exactly what the caller specified. */
+	char *curr_name;
 	if (checkCurdirFirst &&
 	    (!hasSlash || (basename - name == 2 && *name == '.')) &&
-	    find_file_hashi(dot, basename, ename, hv) != NULL) {
+	    (curr_name = find_file_hashi(dot, basename, ename, hv)) != NULL) {
 		if (DEBUG(DIR))
 			printf("in '.'\n");
+		if (strchr(basename, '%') != NULL){
+			printf("returning %s\n", curr_name);
+			return curr_name;
+		}
 		return Str_dupi(name, ename);
 	}
 
-	/* Then, we look through all the directories on path, seeking one
+    /* Then, we look through all the directories on path, seeking one
 	 * containing the final component of name and whose final
 	 * component(s) match name's initial component(s).
 	 * If found, we concatenate the directory name and the
@@ -461,9 +495,14 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 		p = Lst_Datum(ln);
 		if (DEBUG(DIR))
 			printf("%s...", p->name);
-		if (find_file_hashi(p, basename, ename, hv) != NULL) {
+		char *curr_name;
+		if ((curr_name = find_file_hashi(p, basename, ename, hv)) != NULL) {
 			if (DEBUG(DIR))
 				printf("here...");
+			if (strchr(name, '%') != NULL){
+				printf("returning %s\n", curr_name);
+				return curr_name;
+			}
 			if (hasSlash) {
 				/* If the name had a slash, its initial
 				 * components and p's final components must

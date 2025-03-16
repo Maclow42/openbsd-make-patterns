@@ -1252,6 +1252,12 @@ sfnd_abort:
 			gn->path = Dir_FindFile(gn->name,
 			    (targ == NULL ? defaultPath :
 			    &targ->suff->searchPath));
+			if(gn->is_pattern && gn->path != NULL){
+				for(int i = 0; gn->path[i] != '\0'; i++){
+					*gn->name = gn->path[i];
+				}
+				printf("SuffFindNormalDeps: New name: %s\n", gn->name);
+			}	
 			if (gn->path != NULL) {
 				char *ptr;
 				Var(TARGET_INDEX, gn) = estrdup(gn->path);
