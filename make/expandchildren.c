@@ -263,7 +263,6 @@ expand_children_from(GNode *parent, LstNode from)
 			return;
 		}
 
-        printf("\tNo children found\n");
 
 		// else print in red "No children found"
 		printf("\033[1;31mNo children found\033[0m\n");

@@ -209,7 +209,6 @@ Targ_FindNodei(const char *name, const char *ename, int flags)
                 break;
             }
         }
-        printf("Targ_FindNodei: new node%s: %s\n", (gn->is_pattern ? "(pattern)" : ""), strndup(name, ename - name));
 
 		ohash_insert(&targets, slot, gn);
 	}
