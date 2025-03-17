@@ -3,8 +3,8 @@
 
 all: file.out
 
-%.out : file.in
-	cp $? file.out
+%.out : %.in
+	cp file.in file.out
 
 clean:
 	rm -f file.out
