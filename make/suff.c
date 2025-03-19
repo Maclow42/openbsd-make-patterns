@@ -1253,9 +1253,9 @@ sfnd_abort:
 			    (targ == NULL ? defaultPath :
 			    &targ->suff->searchPath));
 			if(gn->is_pattern && gn->path != NULL){
-				for(int i = 0; gn->path[i] != '\0'; i++){
-					*gn->name = gn->path[i];
-				}
+				int i = 0;
+				for(;(*(gn->name+i) = gn->path[i]); i++);
+				*(gn->name+i) = '\0';
 				printf("SuffFindNormalDeps: New name: %s\n", gn->name);
 			}	
 			if (gn->path != NULL) {
