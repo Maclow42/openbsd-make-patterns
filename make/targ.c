@@ -172,7 +172,7 @@ Targ_mk_node(const char *name, const char *ename,
 	gn->basename = NULL;
 	gn->sibling = gn;
 	gn->groupling = NULL;
-    gn->is_pattern = false;
+    gn->is_pattern = (strchr(name, '%') != NULL);
 
 #ifdef STATS_GN_CREATION
 	STAT_GN_COUNT++;
@@ -202,14 +202,6 @@ Targ_FindNodei(const char *name, const char *ename, int flags)
 
 	if (gn == NULL && (flags & TARG_CREATE)) {
 		gn = Targ_NewGNi(name, ename);
-
-		 for(long i = 0; i < ename-name; i++) {
-            if(*(name+i) == '%') {
-                gn->is_pattern = true;
-                break;
-            }
-        }
-
 		ohash_insert(&targets, slot, gn);
 	}
 
@@ -230,13 +222,6 @@ bool match_pattern(const char *name, const char *pattern, char** expended) {
     // Afficher pour debug
     size_t name_len = strlen(name);
     size_t pattern_len = strlen(pattern);
-
-    char *name_copy = strndup(name, name_len);
-    char *pattern_copy = strndup(pattern, pattern_len);
-    
-    printf("match_pattern: name = %s, pattern = %s\n", name_copy, pattern_copy);
-    free(name_copy);
-    free(pattern_copy);
 
     while (*n && *p) {
         if (*p == *n) {
@@ -265,8 +250,13 @@ bool match_pattern(const char *name, const char *pattern, char** expended) {
     }
 
     bool result = (*p == '\0'); // Si on a bien consommé tout `pattern`
+
+	char *name_copy = strndup(name, name_len);
+    char *pattern_copy = strndup(pattern, pattern_len);
     
-    printf("match_pattern: %s\n", result ? "true" : "false");
+    printf("match_pattern: name = %s, pattern = %s, result = %s\n", name_copy, pattern_copy, result ? "true" : "false");
+    free(name_copy);
+    free(pattern_copy);
 
     if (result) {
         *expended = strndup(name, match_start - name);
