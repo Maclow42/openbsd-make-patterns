@@ -239,7 +239,6 @@ bool match_pattern(const char *name, const char *pattern, char** expended) {
             n = match_start;
             p = wildcard + 1;  // Reprendre après le `%`
         } else {
-            printf("match_pattern: false\n");
             return false;  // Pas de correspondance possible
         }
     }
@@ -282,7 +281,6 @@ bool match_pattern(const char *name, const char *pattern, char** expended) {
             // check if gn not a parent of name
             bool is_parent = false;
             LstNode ln = Lst_First(&gn->parents);
-            printf("Targ_FindPatternMatchingNode: ln = %p == NULL ? %s\n", ln, ln == NULL ? "true" : "false");
             for (; ln != NULL; ln = Lst_Adv(ln)) {
                 GNode *parent = Lst_Datum(ln);
                 char* curr_name = strndup(name, len);
@@ -296,10 +294,8 @@ bool match_pattern(const char *name, const char *pattern, char** expended) {
                 }
             }
 
-            if (!is_parent && gn) {
-                printf("Targ_FindPatternMatchingNode: %% was egal to %s\n", *expended);
+            if (!is_parent && gn)
                 return gn;
-            }
         }
     }
     return NULL;
