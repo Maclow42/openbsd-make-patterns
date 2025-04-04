@@ -173,6 +173,8 @@ Targ_mk_node(const char *name, const char *ename,
 	gn->sibling = gn;
 	gn->groupling = NULL;
     gn->is_pattern = (strchr(name, '%') != NULL);
+	gn->has_been_expanded = false;
+	gn->pattern_value = NULL;
 
 #ifdef STATS_GN_CREATION
 	STAT_GN_COUNT++;

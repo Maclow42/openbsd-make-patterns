@@ -155,6 +155,8 @@ struct GNode_ {
     bool in_cycle;	/* cycle detection */
 
 	bool is_pattern; /* true if the target is a pattern target */
+	bool has_been_expanded;
+	char *pattern_value;
 
     char name[1];	/* The target's name */
 };
