@@ -40,6 +40,7 @@
 
 extern void Targ_Init(void);
 extern GNode *Targ_NewGNi(const char *, const char *);
+extern GNode * Targ_CopyGni(GNode *);
 #define Targ_NewGN(n)	Targ_NewGNi(n, NULL);
 extern GNode *Targ_FindNodei(const char *, const char *, int);
 #define Targ_FindNode(n, i)	Targ_FindNodei(n, NULL, i)

@@ -188,6 +188,39 @@ Targ_NewGNi(const char *name, const char *ename)
 }
 
 GNode *
+Targ_CopyGni(GNode *gn)
+{
+	if(gn == NULL){
+		printf("Targ_CopyGni: ERROR: gn is NULL.\n");
+		return NULL;
+	}
+
+	GNode *new_node = Targ_NewGNi(gn->name, strchr(gn->name, 0));
+			
+	if(new_node == NULL){
+		printf("expand_children_from: ERROR: node creation failed.\n");
+		return NULL;
+	}
+
+	new_node->commands = gn->commands;
+
+	// now, we need to copy also each child of the node
+	LstNode ln;
+	for (ln = Lst_First(&gn->children); ln != NULL; ln = Lst_Adv(ln)) {
+		GNode *child = Lst_Datum(ln);
+		GNode *new_child = Targ_CopyGni(child);
+		if(new_child == NULL){
+			printf("expand_children_from: ERROR: node creation failed.\n");
+			return NULL;
+		}
+		Lst_AtEnd(&new_node->children, new_child);
+		Lst_AtEnd(&new_child->parents, new_node);
+		new_node->children_left++;
+	}
+	return new_node;
+}
+
+GNode *
 Targ_FindNodei(const char *name, const char *ename, int flags)
 {
 	uint32_t hv;
