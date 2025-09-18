@@ -1,7 +1,7 @@
 *.d
 *.o
 *.vscode
-make
+make$
 make.core
 name
 generate
