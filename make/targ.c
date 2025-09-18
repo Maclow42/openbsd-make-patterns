@@ -172,7 +172,7 @@ Targ_mk_node(const char *name, const char *ename,
 	gn->basename = NULL;
 	gn->sibling = gn;
 	gn->groupling = NULL;
-    gn->is_pattern = (strchr(name, '%') != NULL);
+	gn->is_pattern = (strchr(name, '%') != NULL);
 	gn->has_been_expanded = false;
 	gn->pattern_value = NULL;
 
@@ -244,97 +244,100 @@ Targ_FindNodei(const char *name, const char *ename, int flags)
 }
 
 bool match_pattern(const char *name, const char *pattern, char** expended) {
-    const char *p = pattern;
-    const char *n = name;
-    
-    const char *wildcard = NULL;  // Position of `%` in pattern
-    const char *match_start = NULL;  // Corresponding position in name
+	const char *p = pattern;
+	const char *n = name;
 
-    if (!name || !pattern) {
-        return false;
-    }
+	const char *wildcard = NULL;  // Position of `%` in pattern
+	const char *match_start = NULL;  // Corresponding position in name
 
-    // Afficher pour debug
-    size_t name_len = strlen(name);
-    size_t pattern_len = strlen(pattern);
+	if (!name || !pattern) {
+		return false;
+	}
 
-    while (*n && *p) {
-        if (*p == *n) {
-            // Avancer si les caractères correspondent
-            p++;
-            n++;
-        } else if (*p == '%') {
-            // Si on trouve un `%`, enregistrer sa position
-            wildcard = p;
-            match_start = n;
-            p++; // Passer le `%`
-        } else if (wildcard) {
-            // Si un `%` a déjà été rencontré, essayer de consommer `name`
-            match_start++;  // Essayer la prochaine position
-            n = match_start;
-            p = wildcard + 1;  // Reprendre après le `%`
-        } else {
-            return false;  // Pas de correspondance possible
-        }
-    }
+	// Print for debug
+	size_t name_len = strlen(name);
+	size_t pattern_len = strlen(pattern);
 
-    // Vérifier que le reste du `pattern` est uniquement des `%`
-    while (*p == '%') {
-        p++;
-    }
+	while (*n && *p) {
+		if (*p == *n) {
+			// Advance if characters match
+			p++;
+			n++;
+		} else if (*p == '%') {
+			// If we find a `%`, record its position
+			wildcard = p;
+			match_start = n;
+			p++; // Skip the `%`
+		} else if (wildcard) {
+			// If a `%` has already been encountered, try to consume `name`
+			match_start++;  // Try the next position
+			n = match_start;
+			p = wildcard + 1;  // Resume after the `%`
+		} else {
+			return false;  // No possible match
+		}
+	}
 
-    bool result = (*p == '\0'); // Si on a bien consommé tout `pattern`
+	// Check that the rest of `pattern` is only `%`
+	while (*p == '%') {
+		p++;
+	}
+
+	bool result = (*p == '\0'); // If we have consumed all of `pattern`
 
 	char *name_copy = strndup(name, name_len);
-    char *pattern_copy = strndup(pattern, pattern_len);
-    
-    printf("match_pattern: name = %s, pattern = %s, result = %s\n", name_copy, pattern_copy, result ? "true" : "false");
-    free(name_copy);
-    free(pattern_copy);
+	char *pattern_copy = strndup(pattern, pattern_len);
 
-    if (result) {
-        *expended = strndup(name, match_start - name);
-    }
+	printf("match_pattern: name = %s, pattern = %s, result = %s\n", name_copy, pattern_copy, result ? "true" : "false");
+	free(name_copy);
+	free(pattern_copy);
 
-    return result;
+	if (result) {
+		*expended = strndup(name, match_start - name);
+	}
+
+	return result;
 }
 
 /* Take a name as parameter and search for all ->is_pattern targets whose ->name match with param
  */
- GNode *
- Targ_FindPatternMatchingNode(const char *name, char** expended)
- {
-    // parcourt de chaque target de la table
-    // si la target est un pattern et que le nom de la target match avec le nom passé en paramètre
-    // on retourne la target
-    unsigned int i;
-    GNode *gn = NULL;
-    const int len = strlen(name);
-    printf("Targ_FindPatternMatchingNode:\n");
-    for (gn = ohash_first(&targets, &i); gn != NULL; gn = ohash_next(&targets, &i)) {
-        if (gn->is_pattern && strcmp(name, gn->name) && match_pattern(name, gn->name, expended)) {
-            // check if gn not a parent of name
-            bool is_parent = false;
-            LstNode ln = Lst_First(&gn->parents);
-            for (; ln != NULL; ln = Lst_Adv(ln)) {
-                GNode *parent = Lst_Datum(ln);
-                char* curr_name = strndup(name, len);
-                const int parent_len = strlen(parent->name);
-                char* parent_name = strndup(parent->name, parent_len);
-                //printf("\t - ename = %p, name = %p, parent->node_ename = %p, parent->node_name = %p\n", ename, name, parent->node_ename, parent->node_name);
-                printf("\t - Targ_FindPatternMatchingNode: name = %s, parent_name = %s\n", curr_name, parent_name);
-                if(len == parent_len && strcmp(curr_name, parent_name) == 0) {
-                    is_parent = true;
-                    break;
-                }
-            }
+GNode *
+Targ_FindPatternMatchingNode(const char *name, char **expended)
+{
+	// Iterate over each target in the table
+	// If the target is a pattern and the target's name matches the name passed as a parameter,
+	// return the target
+	unsigned int i;
+	GNode *gn = NULL;
+	const int len = strlen(name);
+	printf("Targ_FindPatternMatchingNode:\n");
+	for (gn = ohash_first(&targets, &i); gn != NULL; gn = ohash_next(&targets, &i)) {
+		if (gn->is_pattern && strcmp(name, gn->name) && match_pattern(name, gn->name, expended)) {
+			// check if gn not a parent of name
+			bool is_parent = false;
+			LstNode ln = Lst_First(&gn->parents);
+			for (; ln != NULL; ln = Lst_Adv(ln)) {
+				GNode *parent = Lst_Datum(ln);
+				char *curr_name = strndup(name, len);
+				const int parent_len = strlen(parent->name);
+				char *parent_name = strndup(parent->name, parent_len);
+				printf("\t - Targ_FindPatternMatchingNode: name = %s, parent_name = %s\n", curr_name, parent_name);
+				if (len == parent_len && strcmp(curr_name, parent_name) == 0) {
+					is_parent = true;
+					free(curr_name);
+					free(parent_name);
+					break;
+				}
+				free(curr_name);
+				free(parent_name);
+			}
 
-            if (!is_parent && gn)
-                return gn;
-        }
-    }
-    return NULL;
- }
+			if (!is_parent && gn)
+				return gn;
+		}
+	}
+	return NULL;
+}
 
 GNode *
 Targ_mk_special_node(const char *name, size_t n, uint32_t hv,

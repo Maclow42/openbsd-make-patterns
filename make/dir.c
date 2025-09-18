@@ -292,12 +292,12 @@ find_file_hashi(struct PathEntry *p, const char *file, const char *efile,
 {
 	struct ohash 	*h = &p->files;
 
-    if (strchr(file, '%') != NULL) {
-        char *result = find_file_hashi_with_pattern(dot, file, hv);
+	if (strchr(file, '%') != NULL) {
+		char *result = find_file_hashi_with_pattern(dot, file, hv);
 		printf("find_file_hashi: Matched file: %s\n", result); 
-        if(result)
-            return result;
-    }
+		if(result)
+			return result;
+	}
 
 	return ohash_find(h, ohash_lookup_interval(h, file, efile, hv));
 }
@@ -305,20 +305,20 @@ find_file_hashi(struct PathEntry *p, const char *file, const char *efile,
 static char *
 find_file_hashi_with_pattern(struct PathEntry *p, const char *pattern, uint32_t hv)
 {
-    unsigned int search;
-    const char *entry;
-    char *matched_name;
+	unsigned int search;
+	const char *entry;
+	char *matched_name;
 
-    for (entry = ohash_first(&p->files, &search); entry != NULL;
-         entry = ohash_next(&p->files, &search)) {
-        if (match_pattern(entry, pattern, &matched_name)) {
-            printf("find_file_hashi_with_pattern: Matched file: %s\n", entry);
-            free(matched_name);
-            return strdup(entry);   
-        }
-    }
+	for (entry = ohash_first(&p->files, &search); entry != NULL;
+		 entry = ohash_next(&p->files, &search)) {
+		if (match_pattern(entry, pattern, &matched_name)) {
+			printf("find_file_hashi_with_pattern: Matched file: %s\n", entry);
+			free(matched_name);
+			return strdup(entry);   
+		}
+	}
 
-    return NULL;
+	return NULL;
 }
 
 static bool
@@ -339,8 +339,8 @@ read_directory(struct PathEntry *p)
 
 	while ((dp = readdir(d)) != NULL) {
 		if (dp->d_name[0] == '.' &&
-		    (dp->d_name[1] == '\0' ||
-		    (dp->d_name[1] == '.' && dp->d_name[2] == '\0')))
+			(dp->d_name[1] == '\0' ||
+			(dp->d_name[1] == '.' && dp->d_name[2] == '\0')))
 			continue;
 		add_file(p, dp->d_name);
 	}
