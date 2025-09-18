@@ -189,36 +189,161 @@ Targ_NewGNi(const char *name, const char *ename)
 	return Targ_mk_node(name, ename, OP_ZERO, SPECIAL_NONE, 0);
 }
 
+char *
+expend_pattern_from_char(char *src, size_t src_len, char *pattern_value, size_t pattern_value_len){
+	if(src == NULL || pattern_value == NULL){
+		return NULL;
+	}
+
+	char *result = NULL;
+	size_t result_len = 0;
+
+	printf("\033[34mexpend_pattern_from_char: src='%s', pattern_value='%s'\033[0m\n", src, pattern_value);
+
+	// find % in src
+	char *percent = strchr(src, '%');
+	if(percent == NULL){
+		// no %, return a copy of src
+		result = emalloc(src_len + 1);
+		memcpy(result, src, src_len);
+		result[src_len] = '\0';
+		printf("\033[34mexpend_pattern_from_char: no %% found, return copy of src: '%s'\033[0m\n", result);
+		return result;
+	}
+
+	// calculate lengths
+	size_t prefix_len = percent - src;
+	size_t suffix_len = src_len - prefix_len - 1; // -1 for %
+	result_len = prefix_len + pattern_value_len + suffix_len;
+	result = emalloc(result_len + 1);
+
+	// copy prefix
+	memcpy(result, src, prefix_len);
+	// copy pattern_value
+	memcpy(result + prefix_len, pattern_value, pattern_value_len);
+	// copy suffix
+	memcpy(result + prefix_len + pattern_value_len, percent + 1, suffix_len);
+	result[result_len] = '\0';
+
+	printf("\033[34mexpend_pattern_from_char: result='%s'\033[0m\n", result);
+
+	return result;
+}
+
 GNode *
-Targ_CopyGni(GNode *gn)
+Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 {
 	if(gn == NULL){
-		printf("Targ_CopyGni: ERROR: gn is NULL.\n");
+		printf("Targ_BuildFromPattern: ERROR: gn is NULL.\n");
 		return NULL;
 	}
 
-	GNode *new_node = Targ_NewGNi(gn->name, strchr(gn->name, 0));
-			
+	if(pattern_value == NULL){
+		printf("Targ_BuildFromPattern: ERROR: pattern_value is NULL.\n");
+		return NULL;
+	}
+
+	if(!gn->is_pattern){
+		printf("Targ_BuildFromPattern: ERROR: gn is not a pattern.\n");
+		return NULL;
+	}
+
+	// First compute expanded name, then allocate a node sized for it
+	char *new_name = expend_pattern_from_char(gn->name, strlen(gn->name), pattern_value, pattern_value_len);
+	if(new_name == NULL){
+		printf("Targ_BuildFromPattern: ERROR: expend_pattern_from_char failed.\n");
+		return NULL;
+	}
+	GNode *new_node = Targ_NewGNi(new_name, new_name + strlen(new_name));
+	free(new_name);
 	if(new_node == NULL){
-		printf("expand_children_from: ERROR: node creation failed.\n");
+		printf("Targ_BuildFromPattern: ERROR: node creation failed.\n");
 		return NULL;
 	}
 
-	new_node->commands = gn->commands;
+	// Deep copy of commands
+	LstNode ln;
+	for (ln = Lst_First(&gn->commands); ln != NULL; ln = Lst_Adv(ln)) {
+		struct command *cmd = Lst_Datum(ln);
+		const char *src = cmd->string;
+		size_t src_len = strlen(src);
+
+		// replace all $* by a %
+		// expand repeatedly until no more $* found
+		char *percent;
+		bool src_allocated = false;
+		while ((percent = strstr(src, "$*")) != NULL) {
+			size_t prefix_len = percent - src;
+			size_t suffix_len = strlen(src) - prefix_len - 2; // -2 for $*
+			size_t new_len = prefix_len + 1 + suffix_len; // +1 for %
+			char *next = emalloc(new_len + 1);
+			memcpy(next, src, prefix_len);
+			next[prefix_len] = '%';
+			memcpy(next + prefix_len + 1, percent + 2, suffix_len);
+			next[new_len] = '\0';
+			if (src_allocated)
+				free((void *)src);
+			src = next;
+			src_allocated = true;
+		}
+
+		// expand repeatedly until no more % found (will replace all % and old $*)
+		char *expanded = emalloc(src_len + 1);
+		memcpy(expanded, src, src_len + 1);
+		while (strchr(expanded, '%') != NULL) {
+			char *next = expend_pattern_from_char(expanded, strlen(expanded), pattern_value, pattern_value_len);
+			free(expanded);
+			expanded = next;
+		}
+
+		size_t elen = strlen(expanded);
+		struct command *new_cmd = emalloc(offsetof(struct command, string) + elen + 1);
+		new_cmd->location = cmd->location;
+		memcpy(new_cmd->string, expanded, elen + 1);
+		free(expanded);
+
+		Lst_AtEnd(&new_node->commands, new_cmd);
+	}
 
 	// now, we need to copy also each child of the node
-	LstNode ln;
+	// For each child, we need to replace % with pattern_value
+	// If a gnode is already existing with the new name, we don't create a new one and we just link it
 	for (ln = Lst_First(&gn->children); ln != NULL; ln = Lst_Adv(ln)) {
 		GNode *child = Lst_Datum(ln);
-		GNode *new_child = Targ_CopyGni(child);
-		if(new_child == NULL){
-			printf("expand_children_from: ERROR: node creation failed.\n");
+		if(child == NULL){
+			printf("Targ_BuildFromPattern: ERROR: child is NULL.\n");
 			return NULL;
 		}
+		
+		// Get the full expended name
+		char *expended_name = NULL;
+		size_t child_name_len = strlen(child->name);
+		expended_name = expend_pattern_from_char(child->name, child_name_len, pattern_value, pattern_value_len);
+		if(expended_name == NULL){
+			printf("Targ_BuildFromPattern: ERROR: expend_pattern_from_char failed.\n");
+			return NULL;
+		}
+		// Check if a gnode with the expended name already exists
+		GNode *new_child = Targ_FindNode(expended_name, TARG_NOCREATE);
+		if(new_child == NULL){
+			// Create a new gnode from the child pattern
+			new_child = Targ_BuildFromPattern(child, pattern_value, pattern_value_len);
+			if(new_child == NULL){
+				printf("Targ_BuildFromPattern: ERROR: node creation failed.\n");
+				free(expended_name);
+				return NULL;
+			}
+		}
+		free(expended_name);
 		Lst_AtEnd(&new_node->children, new_child);
 		Lst_AtEnd(&new_child->parents, new_node);
 		new_node->children_left++;
 	}
+
+	new_node->is_pattern = false;
+	new_node->has_been_expanded = true;
+	new_node->pattern_value = strndup(pattern_value, pattern_value_len);
+	
 	return new_node;
 }
 

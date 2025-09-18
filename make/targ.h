@@ -40,13 +40,13 @@
 
 extern void Targ_Init(void);
 extern GNode *Targ_NewGNi(const char *, const char *);
-extern GNode * Targ_CopyGni(GNode *);
 #define Targ_NewGN(n)	Targ_NewGNi(n, NULL);
 extern GNode *Targ_FindNodei(const char *, const char *, int);
 #define Targ_FindNode(n, i)	Targ_FindNodei(n, NULL, i)
 
 extern bool match_pattern(const char *name, const char *pattern, char** expended);
 extern GNode *Targ_FindPatternMatchingNode(const char *name, char** expended);
+GNode *Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len);
 
 
 
