@@ -339,8 +339,8 @@ read_directory(struct PathEntry *p)
 
 	while ((dp = readdir(d)) != NULL) {
 		if (dp->d_name[0] == '.' &&
-			(dp->d_name[1] == '\0' ||
-			(dp->d_name[1] == '.' && dp->d_name[2] == '\0')))
+		    (dp->d_name[1] == '\0' ||
+		    (dp->d_name[1] == '.' && dp->d_name[2] == '\0')))
 			continue;
 		add_file(p, dp->d_name);
 	}
@@ -486,7 +486,7 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 		return Str_dupi(name, ename);
 	}
 
-    /* Then, we look through all the directories on path, seeking one
+	/* Then, we look through all the directories on path, seeking one
 	 * containing the final component of name and whose final
 	 * component(s) match name's initial component(s).
 	 * If found, we concatenate the directory name and the
