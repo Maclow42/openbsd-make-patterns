@@ -190,44 +190,37 @@ Targ_NewGNi(const char *name, const char *ename)
 }
 
 char *
-expend_pattern_from_char(char *src, size_t src_len, char *pattern_value, size_t pattern_value_len){
-	if(src == NULL || pattern_value == NULL){
+expand_from_char(char *src, size_t src_len, char* to_expand, size_t to_expand_len, char *pattern_value, size_t pattern_value_len) {
+	if (src == NULL || pattern_value == NULL || to_expand == NULL) {
 		return NULL;
 	}
 
-	char *result = NULL;
-	size_t result_len = 0;
-
-	printf("\033[34mexpend_pattern_from_char: src='%s', pattern_value='%s'\033[0m\n", src, pattern_value);
-
-	// find % in src
-	char *percent = strchr(src, '%');
-	if(percent == NULL){
-		// no %, return a copy of src
-		result = emalloc(src_len + 1);
+	char *expander = strstr(src, to_expand);
+	if (expander == NULL) {
+		// No match, return a copy of src
+		char *result = emalloc(src_len + 1);
 		memcpy(result, src, src_len);
 		result[src_len] = '\0';
-		printf("\033[34mexpend_pattern_from_char: no %% found, return copy of src: '%s'\033[0m\n", result);
 		return result;
 	}
 
-	// calculate lengths
-	size_t prefix_len = percent - src;
-	size_t suffix_len = src_len - prefix_len - 1; // -1 for %
-	result_len = prefix_len + pattern_value_len + suffix_len;
-	result = emalloc(result_len + 1);
+	size_t prefix_len = expander - src;
+	size_t suffix_len = src_len - prefix_len - to_expand_len;
+	size_t result_len = prefix_len + pattern_value_len + suffix_len;
+	char *result = emalloc(result_len + 1);
 
-	// copy prefix
 	memcpy(result, src, prefix_len);
-	// copy pattern_value
 	memcpy(result + prefix_len, pattern_value, pattern_value_len);
-	// copy suffix
-	memcpy(result + prefix_len + pattern_value_len, percent + 1, suffix_len);
+	memcpy(result + prefix_len + pattern_value_len, expander + to_expand_len, suffix_len);
 	result[result_len] = '\0';
 
-	printf("\033[34mexpend_pattern_from_char: result='%s'\033[0m\n", result);
-
 	return result;
+}
+
+char *
+expand_pattern_from_char(char *src, size_t src_len, char *pattern_value, size_t pattern_value_len)
+{
+	return expand_from_char(src, src_len, "%", 1, pattern_value, pattern_value_len);
 }
 
 GNode *
@@ -249,9 +242,9 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 	}
 
 	// First compute expanded name, then allocate a node sized for it
-	char *new_name = expend_pattern_from_char(gn->name, strlen(gn->name), pattern_value, pattern_value_len);
+	char *new_name = expand_pattern_from_char(gn->name, strlen(gn->name), pattern_value, pattern_value_len);
 	if(new_name == NULL){
-		printf("Targ_BuildFromPattern: ERROR: expend_pattern_from_char failed.\n");
+		printf("Targ_BuildFromPattern: ERROR: expand_pattern_from_char failed.\n");
 		return NULL;
 	}
 	GNode *new_node = Targ_NewGNi(new_name, new_name + strlen(new_name));
@@ -268,30 +261,11 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 		const char *src = cmd->string;
 		size_t src_len = strlen(src);
 
-		// replace all $* by a %
-		// expand repeatedly until no more $* found
-		char *percent;
-		bool src_allocated = false;
-		while ((percent = strstr(src, "$*")) != NULL) {
-			size_t prefix_len = percent - src;
-			size_t suffix_len = strlen(src) - prefix_len - 2; // -2 for $*
-			size_t new_len = prefix_len + 1 + suffix_len; // +1 for %
-			char *next = emalloc(new_len + 1);
-			memcpy(next, src, prefix_len);
-			next[prefix_len] = '%';
-			memcpy(next + prefix_len + 1, percent + 2, suffix_len);
-			next[new_len] = '\0';
-			if (src_allocated)
-				free((void *)src);
-			src = next;
-			src_allocated = true;
-		}
-
-		// expand repeatedly until no more % found (will replace all % and old $*)
+		// expand all $* repeatedly until no more found
 		char *expanded = emalloc(src_len + 1);
 		memcpy(expanded, src, src_len + 1);
-		while (strchr(expanded, '%') != NULL) {
-			char *next = expend_pattern_from_char(expanded, strlen(expanded), pattern_value, pattern_value_len);
+		while (strchr(expanded, '$*') != NULL) {
+			char *next = expand_from_char(expanded, strlen(expanded), "$*", 2, pattern_value, pattern_value_len);
 			free(expanded);
 			expanded = next;
 		}
@@ -315,26 +289,26 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 			return NULL;
 		}
 		
-		// Get the full expended name
-		char *expended_name = NULL;
+		// Get the full expanded name
+		char *expanded_name = NULL;
 		size_t child_name_len = strlen(child->name);
-		expended_name = expend_pattern_from_char(child->name, child_name_len, pattern_value, pattern_value_len);
-		if(expended_name == NULL){
-			printf("Targ_BuildFromPattern: ERROR: expend_pattern_from_char failed.\n");
+		expanded_name = expand_pattern_from_char(child->name, child_name_len, pattern_value, pattern_value_len);
+		if(expanded_name == NULL){
+			printf("Targ_BuildFromPattern: ERROR: expand_pattern_from_char failed.\n");
 			return NULL;
 		}
-		// Check if a gnode with the expended name already exists
-		GNode *new_child = Targ_FindNode(expended_name, TARG_NOCREATE);
+		// Check if a gnode with the expanded name already exists
+		GNode *new_child = Targ_FindNode(expanded_name, TARG_NOCREATE);
 		if(new_child == NULL){
 			// Create a new gnode from the child pattern
 			new_child = Targ_BuildFromPattern(child, pattern_value, pattern_value_len);
 			if(new_child == NULL){
 				printf("Targ_BuildFromPattern: ERROR: node creation failed.\n");
-				free(expended_name);
+				free(expanded_name);
 				return NULL;
 			}
 		}
-		free(expended_name);
+		free(expanded_name);
 		Lst_AtEnd(&new_node->children, new_child);
 		Lst_AtEnd(&new_child->parents, new_node);
 		new_node->children_left++;
@@ -368,7 +342,7 @@ Targ_FindNodei(const char *name, const char *ename, int flags)
 	return gn;
 }
 
-bool match_pattern(const char *name, const char *pattern, char** expended) {
+bool match_pattern(const char *name, const char *pattern, char** expanded) {
 	const char *p = pattern;
 	const char *n = name;
 
@@ -418,7 +392,7 @@ bool match_pattern(const char *name, const char *pattern, char** expended) {
 	free(pattern_copy);
 
 	if (result) {
-		*expended = strndup(name, match_start - name);
+		*expanded = strndup(name, match_start - name);
 	}
 
 	return result;
@@ -427,7 +401,7 @@ bool match_pattern(const char *name, const char *pattern, char** expended) {
 /* Take a name as parameter and search for all ->is_pattern targets whose ->name match with param
  */
 GNode *
-Targ_FindPatternMatchingNode(const char *name, char **expended)
+Targ_FindPatternMatchingNode(const char *name, char **expanded)
 {
 	// Iterate over each target in the table
 	// If the target is a pattern and the target's name matches the name passed as a parameter,
@@ -437,7 +411,7 @@ Targ_FindPatternMatchingNode(const char *name, char **expended)
 	const int len = strlen(name);
 	printf("Targ_FindPatternMatchingNode:\n");
 	for (gn = ohash_first(&targets, &i); gn != NULL; gn = ohash_next(&targets, &i)) {
-		if (gn->is_pattern && strcmp(name, gn->name) && match_pattern(name, gn->name, expended)) {
+		if (gn->is_pattern && strcmp(name, gn->name) && match_pattern(name, gn->name, expanded)) {
 			// check if gn not a parent of name
 			bool is_parent = false;
 			LstNode ln = Lst_First(&gn->parents);
