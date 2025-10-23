@@ -606,15 +606,8 @@ run_gnode(GNode *gn)
 
 	Job_Make(gn);
 	loop_handle_running_jobs();
-	
-	// Remove all its temporary children
-	int i;
-	for (i = 0; i < gn->children_left; i++) {
-		GNode *child = Lst_Datum(Lst_First(&gn->children));;
-		if (child->is_tmp && child->has_been_expanded) {
-			Targ_RemoveTmpTarg(child);
-		}
-	}
+
+	Targ_RemoveAllTmpChildren(gn);
 
 	return gn->built_status;
 }

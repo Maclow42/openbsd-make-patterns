@@ -48,6 +48,7 @@ extern bool match_pattern(const char *name, const char *pattern, char** expended
 extern GNode *Targ_FindPatternMatchingNode(const char *name, char** expended);
 GNode *Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len);
 void Targ_RemoveTmpTarg(GNode *gn);
+void Targ_RemoveAllTmpChildren(GNode *gn);
 
 
 /* helper for constant nodes */

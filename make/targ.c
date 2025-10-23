@@ -467,7 +467,7 @@ Targ_FindPatternMatchingNode(const char *name, char **expanded)
 void Targ_RemoveTmpTarg(GNode *gn)
 {
 	if (gn->is_tmp) {
-		printf("Targ_RemoveTmpTarg: Removing node %s\n", gn->name);
+		printf("\033[31mTarg_RemoveTmpTarg: Removing node %s\033[0m\n", gn->name);
 		const char *file = gn->path != NULL ? gn->path : gn->name;
 		if (eunlink(file) == 0) {
 			if (!Targ_Silent(gn))
@@ -475,6 +475,17 @@ void Targ_RemoveTmpTarg(GNode *gn)
 			gn->is_tmp = false; // mark as not temporary anymore
 		} else {
 			fprintf(stderr, "*** couldn't delete %s: %s\n", file, strerror(errno));
+		}
+	}
+}
+
+void Targ_RemoveAllTmpChildren(GNode *gn)
+{
+	LstNode ln;
+	for (ln = Lst_First(&gn->children); ln != NULL; ln = Lst_Adv(ln)) {
+		GNode *child = Lst_Datum(ln);
+		if (child && child->is_tmp && child->has_been_expanded) {
+			Targ_RemoveTmpTarg(child);
 		}
 	}
 }
