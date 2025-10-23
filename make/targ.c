@@ -96,6 +96,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <ohash.h>
 #include "defines.h"
 #include "stats.h"
@@ -174,6 +175,7 @@ Targ_mk_node(const char *name, const char *ename,
 	gn->groupling = NULL;
 	gn->is_pattern = (strchr(name, '%') != NULL);
 	gn->has_been_expanded = false;
+	gn->is_tmp = true;
 	gn->pattern_value = NULL;
 
 #ifdef STATS_GN_CREATION
@@ -189,7 +191,7 @@ Targ_NewGNi(const char *name, const char *ename)
 	return Targ_mk_node(name, ename, OP_ZERO, SPECIAL_NONE, 0);
 }
 
-char *
+static char *
 expand_from_char(char *src, size_t src_len, char* to_expand, size_t to_expand_len, char *pattern_value, size_t pattern_value_len) {
 	if (src == NULL || pattern_value == NULL || to_expand == NULL) {
 		return NULL;
@@ -223,6 +225,10 @@ expand_pattern_from_char(char *src, size_t src_len, char *pattern_value, size_t 
 	return expand_from_char(src, src_len, "%", 1, pattern_value, pattern_value_len);
 }
 
+/*
+ * Build a new GNode from a pattern GNode by replacing its pattern
+ * value with the given pattern_value.
+ */
 GNode *
 Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 {
@@ -248,7 +254,19 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 		return NULL;
 	}
 	GNode *new_node = Targ_NewGNi(new_name, new_name + strlen(new_name));
+
+	// Search its place in ohash and insert it
+	unsigned int slot;
+	const char *ename = new_name + strlen(new_name);
+	uint32_t hv = ohash_interval(new_name, &ename);
+	slot = ohash_lookup_interval(&targets, new_name, ename, hv);
+	ohash_insert(&targets, slot, new_node);
+
+	printf("Target tmp node created: %s from pattern %s with value %.*s tmp=%s\n",
+		new_node->name, gn->name, (int)pattern_value_len, pattern_value, new_node->is_tmp ? "true" : "false");
+
 	free(new_name);
+	
 	if(new_node == NULL){
 		printf("Targ_BuildFromPattern: ERROR: node creation failed.\n");
 		return NULL;
@@ -311,6 +329,15 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 		free(expanded_name);
 		Lst_AtEnd(&new_node->children, new_child);
 		Lst_AtEnd(&new_child->parents, new_node);
+
+		// Search its place in ohash and insert it
+		unsigned int slot_child;
+		const char *name_child = new_child->name;
+		const char *ename_child = name_child + strlen(name_child);
+		uint32_t hv_child = ohash_interval(name_child, &ename_child);
+		slot_child = ohash_lookup_interval(&targets, name_child, ename_child, hv_child);
+		ohash_insert(&targets, slot_child, new_child);
+
 		new_node->children_left++;
 	}
 
@@ -387,7 +414,6 @@ bool match_pattern(const char *name, const char *pattern, char** expanded) {
 	char *name_copy = strndup(name, name_len);
 	char *pattern_copy = strndup(pattern, pattern_len);
 
-	printf("match_pattern: name = %s, pattern = %s, result = %s\n", name_copy, pattern_copy, result ? "true" : "false");
 	free(name_copy);
 	free(pattern_copy);
 
@@ -436,6 +462,21 @@ Targ_FindPatternMatchingNode(const char *name, char **expanded)
 		}
 	}
 	return NULL;
+}
+
+void Targ_RemoveTmpTarg(GNode *gn)
+{
+	if (gn->is_tmp) {
+		printf("Targ_RemoveTmpTarg: Removing node %s\n", gn->name);
+		const char *file = gn->path != NULL ? gn->path : gn->name;
+		if (eunlink(file) == 0) {
+			if (!Targ_Silent(gn))
+				printf("rm %s\n", file);
+			gn->is_tmp = false; // mark as not temporary anymore
+		} else {
+			fprintf(stderr, "*** couldn't delete %s: %s\n", file, strerror(errno));
+		}
+	}
 }
 
 GNode *

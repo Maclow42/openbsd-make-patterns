@@ -156,6 +156,7 @@ struct GNode_ {
 
 	bool is_pattern; /* true if the target is a pattern target */
 	bool has_been_expanded;
+	bool is_tmp; /* true if the target is a temporary target */
 	char *pattern_value;
 
     char name[1];	/* The target's name */

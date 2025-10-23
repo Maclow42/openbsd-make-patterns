@@ -1253,11 +1253,14 @@ sfnd_abort:
 			    (targ == NULL ? defaultPath :
 			    &targ->suff->searchPath));
 			if(gn->is_pattern && gn->path != NULL){
+				// Encounting a pattern rule matching with a real file
+				// set tmp to false to prevent deletion later
+				gn->is_tmp = false;
 				int i = 0;
 				for(;(*(gn->name+i) = gn->path[i]); i++);
 				*(gn->name+i) = '\0';
 				printf("SuffFindNormalDeps: New name: %s\n", gn->name);
-			}	
+			}
 			if (gn->path != NULL) {
 				char *ptr;
 				Var(TARGET_INDEX, gn) = estrdup(gn->path);

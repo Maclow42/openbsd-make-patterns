@@ -266,9 +266,12 @@ expand_children_from(GNode *parent, LstNode from)
 		char *expended = NULL;
 		if(!parent->has_been_expanded && (matching = Targ_FindPatternMatchingNode(parent->name, &expended))){
 			printf("\tCHILDREN FOUND \n");
+
 			// replace all % pattern of matching node with parent node
 			// and add it to the parent children list
 			GNode *new_node = Targ_BuildFromPattern(matching, expended, strlen(expended));
+			matching->is_tmp = false;
+			new_node->is_tmp = false;
 			if(new_node == NULL){
 				printf("expand_children_from: ERROR: node creation failed.\n");
 				return;
@@ -278,12 +281,16 @@ expand_children_from(GNode *parent, LstNode from)
 			printf("\033[1;32mNew node added: %s\033[0m\n", new_node->name);
 			Lst_AddNew(&parent->children, new_node);
 			parent->children_left++;
+
 			return;
 		}
 
 
 		// else print in red "No children found"
 		printf("\033[1;31mNo children found\033[0m\n");
+
+		// If no children found, the node should exist
+		parent->is_tmp = false;
 	}
 
 	for (ln = from; ln != NULL; ln = np) {
