@@ -8,13 +8,13 @@ file.out : file1.tmp file2.tmp
 	cat $? > $@
 
 %1.tmp %2.tmp: %.sh
-	ksh ./$<
+	ksh ./$^
 
 clean:
 	rm -f file.out file1.tmp file2.tmp
 
 # ----- test -----
-PHONY: test
+.PHONY: test
 
 # check if file.out is created
 # check if file1.tmp and file2.tmp is created

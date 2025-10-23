@@ -13,7 +13,7 @@ clean:
 	rm -f file.out
 
 # ----- test -----
-PHONY: test
+.PHONYY: test
 
 # check if file.out is created
 # check if file1.tmp and file2.tmp has been deleted

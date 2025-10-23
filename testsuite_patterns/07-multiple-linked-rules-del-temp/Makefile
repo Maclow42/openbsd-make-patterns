@@ -18,13 +18,13 @@ clean:
 	rm -f file.out file.tmp
 
 # ----- test -----
-PHONY: test
+.PHONY: test
 
 # check if file.out is created
 # check if file.tmp has been deleted
 # check if file.out contains "This is a test file."
 # if so echo "[OK]" else echo "[KO]"
-test: all
+test:
 	@if [ -f file.out ] && [ ! -f file.tmp ]; then \
 		cat file.out | grep "This is a test file." > /dev/null && echo "[OK]" || echo "[KO]"; \
 	else \

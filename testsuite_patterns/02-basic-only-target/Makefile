@@ -10,10 +10,10 @@ clean:
 	rm -f file.out
 
 # ----- test -----
-PHONY: test
+.PHONY: test
 
 # check if file.out is created
 # check if it contains "This is a test file."
 # if so echo "[OK]" else echo "[KO]"
-test: all
+test:
 	@cat file.out | grep "This is a test file." > /dev/null && echo "[OK]" || echo "[KO]"

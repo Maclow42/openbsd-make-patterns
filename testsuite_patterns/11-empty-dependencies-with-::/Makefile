@@ -9,7 +9,7 @@ clean:
 	rm -f file.out clean test
 
 # ----- test -----
-PHONY: test
+.PHONYY: test
 
 # check if file.out is created
 # check if file.out contains "This is a test file."

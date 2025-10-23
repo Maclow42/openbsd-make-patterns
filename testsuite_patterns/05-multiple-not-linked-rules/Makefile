@@ -14,12 +14,12 @@ clean:
 	rm -f file.out file1.out file2.out
 
 # ----- test -----
-PHONY: test
+.PHONY: test
 
 # check if file.out, file1.out and file2.out are created
 # check if file.out contains "This is a test file."
 # if so echo "[OK]" else echo "[KO]"
-test: all
+test:
 	@if [ -f file.out ] && [ -f file1.out ] && [ -f file2.out ]; then \
 		cat file.out | grep "This is a test file." > /dev/null && echo "[OK]" || echo "[KO]"; \
 	else \

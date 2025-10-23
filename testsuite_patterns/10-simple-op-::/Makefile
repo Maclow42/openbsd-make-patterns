@@ -12,7 +12,7 @@ clean:
 	rm -f file.out
 
 # ----- test -----
-PHONY: test
+.PHONY: test
 
 # check if file.out is created
 # check if file.out contains "This is a test file."

@@ -18,7 +18,7 @@ clean:
 	rm -f file.out file.tmp
 
 # ----- test -----
-PHONY: test
+.PHONYYY: test
 
 # check if file.out and file.tmp are created
 # check if file.out contains "This is a test file."
