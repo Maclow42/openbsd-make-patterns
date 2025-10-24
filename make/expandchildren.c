@@ -216,7 +216,7 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 	GNode	*cgn = Lst_Datum(ln);
 
 	if (DEBUG(PATTERN)) {
-		printf("expand_children_from: expand %s", cgn->name);
+		printf("\t - expand %s", cgn->name);
 	}
 
 	// if parent parrent is a pattern and its pattern value is registred
@@ -262,24 +262,25 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 void
 expand_children_from(GNode *parent, LstNode from)
 {
-	if(DEBUG(PATTERN)){
-		printf("\n- expand_children_from: %s\n", parent->name);
-		printf("\tNumber of children left: %d\n", parent->children_left);
-	}
+	// if(DEBUG(PATTERN)){
+	// 	printf("\n- expand_children_from: %s\n", parent->name);
+	// 	printf("\tNumber of children left: %d\n", parent->children_left);
+	// }
 
 	LstNode np, ln;
 
 	// If not children at the beginning, try to find some in pattern rules
 	if(parent->children_left == 0){
 		if(DEBUG(PATTERN)) {
-			printf("Try to find pattern\n");
+			printf("\t\t => No children found for %s.\n", parent->name);
+			printf("\t\t => Searching for matching pattern targets...\n");
 		}
 
 		GNode *matching;
 		char *expended = NULL;
 		if(!parent->has_been_expanded && (matching = Targ_FindPatternMatchingNode(parent->name, &expended))){
 			if(DEBUG(PATTERN)){
-				printf("\tCHILDREN FOUND \n");
+				printf("\t\t => Matching pattern target found: %s\n", matching->name);
 			}
 
 			// replace all % pattern of matching node with parent node
@@ -295,8 +296,7 @@ expand_children_from(GNode *parent, LstNode from)
 			}
 
 			if(DEBUG(PATTERN)) {
-				// print in green "New node added + matching->node_name"
-				printf("\033[1;32mNew node added: %s\033[0m\n", new_node->name);
+				printf("New child (built from pattern) added to %s\n\n", parent->name);
 			}
 
 			Lst_AddNew(&parent->children, new_node);
@@ -318,7 +318,7 @@ expand_children_from(GNode *parent, LstNode from)
 		np = Lst_Adv(ln);
 
 		if(DEBUG(PATTERN)) {
-			printf("\t\tExpanding children of %s\n", parent->name);
+			printf("Expanding children of %s\n", parent->name);
 		}
 
 		ExpandChildren(ln, parent);

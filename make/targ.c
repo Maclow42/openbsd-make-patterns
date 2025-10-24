@@ -247,6 +247,11 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 		return NULL;
 	}
 
+	if(DEBUG(PATTERN)){
+		printf("Building targets from pattern %s with %%=%.*s\n",
+			gn->name, (int)pattern_value_len, pattern_value);
+	}
+
 	// First compute expanded name, then allocate a node sized for it
 	char *new_name = expand_pattern_from_char(gn->name, strlen(gn->name), pattern_value, pattern_value_len);
 	if(new_name == NULL){
@@ -261,11 +266,6 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 	uint32_t hv = ohash_interval(new_name, &ename);
 	slot = ohash_lookup_interval(&targets, new_name, ename, hv);
 	ohash_insert(&targets, slot, new_node);
-
-	if(DEBUG(PATTERN)){
-		printf("Target tmp node created: %s from pattern %s with value %.*s tmp=%s\n",
-			new_node->name, gn->name, (int)pattern_value_len, pattern_value, new_node->is_tmp ? "true" : "false");
-	}
 
 	free(new_name);
 	
@@ -301,6 +301,10 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 		Lst_AtEnd(&new_node->commands, new_cmd);
 	}
 
+	if(DEBUG(PATTERN)){
+		printf("Building children of %s\n", new_node->name);
+	}
+
 	// now, we need to copy also each child of the node
 	// For each child, we need to replace % with pattern_value
 	// If a gnode is already existing with the new name, we don't create a new one and we just link it
@@ -311,6 +315,10 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 				printf("Targ_BuildFromPattern: ERROR: child is NULL.\n");
 			}
 			return NULL;
+		}
+
+		if(DEBUG(PATTERN)){
+			printf("\t - Building child %s ", child->name);
 		}
 		
 		// Get the full expanded name
@@ -323,15 +331,18 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 			}
 			return NULL;
 		}
+
+		if(DEBUG(PATTERN)){
+			printf("(expanded new name: %s)\n", expanded_name);
+		}
+
 		// Check if a gnode with the expanded name already exists
 		GNode *new_child = Targ_FindNode(expanded_name, TARG_NOCREATE);
 		if(new_child == NULL){
 			// Create a new gnode from the child pattern
 			new_child = Targ_BuildFromPattern(child, pattern_value, pattern_value_len);
 			if(new_child == NULL){
-				if(DEBUG(PATTERN)){
-					printf("Targ_BuildFromPattern: ERROR: node creation failed.\n");
-				}
+				printf("Targ_BuildFromPattern: ERROR: node creation failed.\n");
 				free(expanded_name);
 				return NULL;
 			}
@@ -446,10 +457,6 @@ Targ_FindPatternMatchingNode(const char *name, char **expanded)
 	GNode *gn = NULL;
 	const int len = strlen(name);
 
-	if (DEBUG(PATTERN)) {
-		printf("Targ_FindPatternMatchingNode:\n");
-	}
-
 	for (gn = ohash_first(&targets, &i); gn != NULL; gn = ohash_next(&targets, &i)) {
 		if (gn->is_pattern && strcmp(name, gn->name) && match_pattern(name, gn->name, expanded)) {
 			// check if gn not a parent of name
@@ -464,7 +471,7 @@ Targ_FindPatternMatchingNode(const char *name, char **expanded)
 				if (DEBUG(PATTERN)) {
 					printf("\t - Targ_FindPatternMatchingNode: name = %s, parent_name = %s\n", curr_name, parent_name);
 				}
-				
+
 				if (len == parent_len && strcmp(curr_name, parent_name) == 0) {
 					is_parent = true;
 					free(curr_name);
