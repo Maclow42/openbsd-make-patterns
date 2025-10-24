@@ -215,13 +215,16 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 {
 	GNode	*cgn = Lst_Datum(ln);
 
-	printf("expand_children_from: expand %s", cgn->name);
+	if (DEBUG(PATTERN)) {
+		printf("expand_children_from: expand %s", cgn->name);
+	}
+
 	// if parent parrent is a pattern and its pattern value is registred
 	if(pgn->is_pattern && pgn->pattern_value != NULL){
 		// replace all % pattern of child with parent node's
 		char *percent = strchr(cgn->name, '%');
 		if(percent == NULL){
-			printf(" >> ERROR, percent is NULL\n");
+			printf("ExpandChildren: ERROR, percent is NULL\n");
 			return;
 		}
 		size_t pattern_len = strlen(pgn->pattern_value);
@@ -229,10 +232,14 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 		memmove(percent + pattern_len, percent + 1, suffix_len + 1);
 		memcpy(percent, pgn->pattern_value, pattern_len);
 
-		printf(" (new name: %s)", cgn->name);
+		if(DEBUG(PATTERN)){
+			printf(" (new name: %s)", cgn->name);
+		}
 	}
 
-	printf("\n");
+	if(DEBUG(PATTERN)){
+		printf("\n");
+	}
 
 	/* First do variable expansion -- this takes precedence over wildcard
 	 * expansion. If the result contains wildcards, they'll be gotten to
@@ -255,17 +262,25 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 void
 expand_children_from(GNode *parent, LstNode from)
 {
-	printf("\n- expand_children_from: %s\n", parent->name);
-	printf("\tNumber of children left: %d\n", parent->children_left);
+	if(DEBUG(PATTERN)){
+		printf("\n- expand_children_from: %s\n", parent->name);
+		printf("\tNumber of children left: %d\n", parent->children_left);
+	}
+
 	LstNode np, ln;
 
 	// If not children at the beginning, try to find some in pattern rules
 	if(parent->children_left == 0){
-		printf("Try to find pattern\n");
+		if(DEBUG(PATTERN)) {
+			printf("Try to find pattern\n");
+		}
+
 		GNode *matching;
 		char *expended = NULL;
 		if(!parent->has_been_expanded && (matching = Targ_FindPatternMatchingNode(parent->name, &expended))){
-			printf("\tCHILDREN FOUND \n");
+			if(DEBUG(PATTERN)){
+				printf("\tCHILDREN FOUND \n");
+			}
 
 			// replace all % pattern of matching node with parent node
 			// and add it to the parent children list
@@ -273,21 +288,27 @@ expand_children_from(GNode *parent, LstNode from)
 			matching->is_tmp = false;
 			new_node->is_tmp = false;
 			if(new_node == NULL){
-				printf("expand_children_from: ERROR: node creation failed.\n");
+				if(DEBUG(PATTERN)){
+					printf("expand_children_from: ERROR: node creation failed.\n");
+				}
 				return;
 			}
 
-			// print in green "New node added + matching->node_name"
-			printf("\033[1;32mNew node added: %s\033[0m\n", new_node->name);
+			if(DEBUG(PATTERN)) {
+				// print in green "New node added + matching->node_name"
+				printf("\033[1;32mNew node added: %s\033[0m\n", new_node->name);
+			}
+
 			Lst_AddNew(&parent->children, new_node);
 			parent->children_left++;
 
 			return;
 		}
 
-
+		if(DEBUG(PATTERN)) {
 		// else print in red "No children found"
-		printf("\033[1;31mNo children found\033[0m\n");
+			printf("\tNo pattern matching found for %s\n", parent->name);
+		}
 
 		// If no children found, the node should exist
 		parent->is_tmp = false;
@@ -295,7 +316,11 @@ expand_children_from(GNode *parent, LstNode from)
 
 	for (ln = from; ln != NULL; ln = np) {
 		np = Lst_Adv(ln);
-		printf("\t\tExpanding children of %s\n", parent->name);
+
+		if(DEBUG(PATTERN)) {
+			printf("\t\tExpanding children of %s\n", parent->name);
+		}
+
 		ExpandChildren(ln, parent);
 	}
 }
