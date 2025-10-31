@@ -4,10 +4,10 @@
 all: file.out
 
 %.out: %1.tmp %2.tmp
-	cat $*1.tmp $*2.tmp > $@
+	cat file1.tmp file2.tmp > file.out
 
 %1.tmp %2.tmp: %.sh
-	ksh ./$*.sh
+	ksh ./file.sh
 
 clean:
 	rm -f file.out

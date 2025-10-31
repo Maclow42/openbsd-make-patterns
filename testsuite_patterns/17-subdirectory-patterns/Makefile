@@ -5,8 +5,8 @@ all: output/file.out
 
 output/%.out: input/%.in
 	mkdir -p output
-	cp input/$*.in $@
-	echo " - processed" >> $@
+	cp input/file.in output/file.out
+	echo " - processed" >> output/file.out
 
 clean:
 	rm -rf output

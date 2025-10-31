@@ -5,12 +5,12 @@
 all: file.out file.tmp
 
 %.out: %.tmp
-	cp $*.tmp $@
-	echo " file." >> $@
+	cp file.tmp file.out
+	echo " file." >> file.out
 
 %.tmp: %.in
-	cat $*.in | tr '\n' ' ' > $@
-	echo -n "a test" >> $@
+	cat file.in | tr '\n' ' ' > file.tmp
+	echo -n "a test" >> file.tmp
 
 clean:
 	rm -f file.out file.tmp

@@ -7,12 +7,12 @@ all: file.out
 .INTERMEDIATE: %.tmp
 
 %.out: %.tmp
-	cp $*.tmp $@
-	echo " final" >> $@
+	cp file.tmp file.out
+	echo " final" >> file.out
 
 %.tmp: %.in
-	cp $*.in $@
-	echo " intermediate" >> $@
+	cp file.in file.tmp
+	echo " intermediate" >> file.tmp
 
 clean:
 	rm -f file.out file.tmp

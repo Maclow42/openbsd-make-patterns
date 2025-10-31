@@ -5,11 +5,11 @@ all: program.o
 
 # Pattern rule for C files
 %.o: %.c
-	echo "Compiled from C: $*.c" > $@
+	echo "Compiled from C: program.c" > program.o
 
 # Pattern rule for C++ files  
 %.o: %.cpp
-	echo "Compiled from C++: $*.cpp" > $@
+	echo "Compiled from C++: program.cpp" > program.o
 
 clean:
 	rm -f program.o

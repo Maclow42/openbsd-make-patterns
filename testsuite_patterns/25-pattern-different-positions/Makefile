@@ -4,10 +4,10 @@
 all: libtest.a
 
 lib%.a: %.o
-	echo "Creating library $@ from $*.o" > $@
+	echo "Creating library libtest.a from test.o" > libtest.a
 
 %.o: %.c
-	echo "Compiling $*.c to $@" > $@
+	echo "Compiling test.c to test.o" > test.o
 
 clean:
 	rm -f libtest.a test.o

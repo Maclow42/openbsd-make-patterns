@@ -8,7 +8,7 @@ all: test-file
 .PHONY: test-%
 
 test-%:
-	@echo "Running test: $*" > $@.result
+	@echo "Running test: file" > test-file.result
 
 clean:
 	rm -f test-file.result

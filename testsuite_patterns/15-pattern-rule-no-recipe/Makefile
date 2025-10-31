@@ -9,7 +9,7 @@ all: file.out
 
 # Explicit rule with recipe
 file.out: file.in
-	echo "Explicit rule used" > $@
+	echo "Explicit rule used" > file.out
 
 clean:
 	rm -f file.out

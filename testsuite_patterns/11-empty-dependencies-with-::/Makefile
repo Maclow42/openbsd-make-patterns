@@ -1,4 +1,5 @@
 # Goal: tricky generation of a file.out file without any dependency
+all:
 
 file.out:
 

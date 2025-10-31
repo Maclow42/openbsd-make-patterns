@@ -4,7 +4,7 @@
 all: file.out
 
 %.out: %.in | output-dir
-	cp $*.in $@
+	cp file.in file.out
 
 output-dir:
 	@echo "Directory created" > dir.stamp

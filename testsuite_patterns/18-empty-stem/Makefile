@@ -4,8 +4,8 @@
 all: .out
 
 %.out: %.in
-	echo "Stem is: '$*'" > $@
-	cat $*.in >> $@
+	echo "Stem is: ''" > .out
+	cat .in >> .out
 
 clean:
 	rm -f .out

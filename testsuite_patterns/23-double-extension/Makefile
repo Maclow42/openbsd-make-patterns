@@ -4,12 +4,12 @@
 all: archive.tar.gz
 
 %.tar.gz: %.tar
-	cp $*.tar $@
-	echo " compressed" >> $@
+	cp archive.tar archive.tar.gz
+	echo " compressed" >> archive.tar.gz
 
 %.tar: %.txt
-	cp $*.txt $@
-	echo " archived" >> $@
+	cp archive.txt archive.tar
+	echo " archived" >> archive.tar
 
 clean:
 	rm -f archive.tar.gz archive.tar

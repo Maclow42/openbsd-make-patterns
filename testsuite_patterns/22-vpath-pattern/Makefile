@@ -7,7 +7,7 @@ all: file.out
 vpath %.in src
 
 %.out: %.in
-	cp src/$*.in $@
+	cp src/file.in file.out
 
 clean:
 	rm -f file.out

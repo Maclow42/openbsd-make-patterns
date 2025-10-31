@@ -7,7 +7,7 @@ file.out: file1.tmp file2.tmp
 	cat file1.tmp file2.tmp > $@
 
 %1.tmp %2.tmp: %.sh
-	ksh ./$*.sh
+	ksh $>
 
 clean:
 	rm -f file.out file1.tmp file2.tmp

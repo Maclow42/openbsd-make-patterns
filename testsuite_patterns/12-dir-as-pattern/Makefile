@@ -3,13 +3,13 @@
 all: file.out
 
 %.out: ./src/tmp/%.tmp
-	cat ./src/tmp/$*.tmp > $@
+	cat $> > $@
 
 %.tmp:
 	echo "This is a test file." > $@
 
 clean:
-	rm -rf file.out
+	rm -rf file.out src/tmp/*.tmp
 
 # ----- test -----
 .PHONY: test

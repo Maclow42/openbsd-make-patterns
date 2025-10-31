@@ -4,16 +4,16 @@
 all: file.out
 
 %.out: %.mid
-	cp $*.mid $@
-	echo " [stage3]" >> $@
+	cp file.mid file.out
+	echo " [stage3]" >> file.out
 
 %.mid: %.tmp
-	cp $*.tmp $@
-	echo " [stage2]" >> $@
+	cp file.tmp file.mid
+	echo " [stage2]" >> file.mid
 
 %.tmp: %.in
-	cp $*.in $@
-	echo " [stage1]" >> $@
+	cp file.in file.tmp
+	echo " [stage1]" >> file.tmp
 
 clean:
 	rm -f file.out file.mid file.tmp

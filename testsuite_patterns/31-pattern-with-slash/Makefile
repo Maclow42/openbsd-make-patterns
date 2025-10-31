@@ -5,7 +5,7 @@ all: out/subdir/file.result
 
 out/%.result: src/%.data
 	mkdir -p out/subdir
-	cp src/$*.data $@
+	cp src/subdir/file.data out/subdir/file.result
 
 clean:
 	rm -rf out
