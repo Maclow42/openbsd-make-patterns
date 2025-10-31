@@ -396,6 +396,18 @@ Targ_FindNodei(const char *name, const char *ename, int flags)
 	return gn;
 }
 
+/*
+ * Match a name against a pattern, expanding any wildcards.
+ * If a match is found, return true and set *expanded to the expanded
+ * portion of the name corresponding to the `%` in the pattern.
+ * If no match is found, return false.
+ * If the expanded portion is not needed, set *expanded to NULL.
+ * 
+ * WARNING: The caller is responsible for freeing *expanded when
+ * it is no longer needed.
+ * 
+ * WARNING 2: This function only supports a single `%` wildcard in the pattern.
+ */
 bool match_pattern(const char *name, const char *pattern, char** expanded) {
 	const char *p = pattern;
 	const char *n = name;
@@ -438,14 +450,9 @@ bool match_pattern(const char *name, const char *pattern, char** expanded) {
 
 	bool result = (*p == '\0'); // If we have consumed all of `pattern`
 
-	char *name_copy = strndup(name, name_len);
-	char *pattern_copy = strndup(pattern, pattern_len);
-
-	free(name_copy);
-	free(pattern_copy);
-
-	if (result) {
-		*expanded = strndup(name, match_start - name);
+	if (result && wildcard && expanded) {
+    	size_t len = match_start - name;
+    	*expanded = strndup(name, len);
 	}
 
 	return result;
