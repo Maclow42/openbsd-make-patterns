@@ -5,7 +5,7 @@ all: file.out
 %.out: ./src/tmp/%.tmp
 	cat ./src/tmp/$*.tmp > $@
 
-./src/tmp/file.tmp:
+%.tmp:
 	echo "This is a test file." > $@
 
 clean:
