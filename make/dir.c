@@ -294,7 +294,11 @@ find_file_hashi(struct PathEntry *p, const char *file, const char *efile,
 
 	if (strchr(file, '%') != NULL) {
 		char *result = find_file_hashi_with_pattern(dot, file, hv);
-		printf("find_file_hashi: Matched file: %s\n", result); 
+
+		if(DEBUG(PATTERN)) {
+			printf("find_file_hashi: Matched file: %s\n", result);
+		}
+
 		if(result)
 			return result;
 	}
@@ -312,7 +316,11 @@ find_file_hashi_with_pattern(struct PathEntry *p, const char *pattern, uint32_t 
 	for (entry = ohash_first(&p->files, &search); entry != NULL;
 		 entry = ohash_next(&p->files, &search)) {
 		if (match_pattern(entry, pattern, &matched_name)) {
-			printf("find_file_hashi_with_pattern: Matched file: %s\n", entry);
+
+			if (DEBUG(PATTERN)) {
+				printf("find_file_hashi_with_pattern: Matched file: %s\n", entry);
+			}
+			
 			free(matched_name);
 			return strdup(entry);   
 		}
