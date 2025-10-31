@@ -292,7 +292,7 @@ Targ_BuildFromPattern(GNode *gn, char *pattern_value, size_t pattern_value_len)
 		// expand all $* repeatedly until no more found
 		char *expanded = emalloc(src_len + 1);
 		memcpy(expanded, src, src_len + 1);
-		while (strchr(expanded, '$*') != NULL) {
+		while (strstr(expanded, "$*") != NULL) {
 			char *next = expand_from_char(expanded, strlen(expanded), "$*", 2, pattern_value, pattern_value_len);
 			free(expanded);
 			expanded = next;
