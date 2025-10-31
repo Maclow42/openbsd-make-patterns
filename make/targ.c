@@ -123,6 +123,8 @@ static GNode *Targ_mk_node(const char *, const char *, unsigned int,
 #define Targ_mk_constant(n, type) \
     Targ_mk_special_node(n, sizeof(n), K_##n, type, SPECIAL_NONE, 0)
 
+static void Targ_RemoveTmpTarg(GNode *gn);
+
 GNode *begin_node, *end_node, *interrupt_node, *DEFAULT;
 
 void
@@ -489,21 +491,19 @@ Targ_FindPatternMatchingNode(const char *name, char **expanded)
 	return NULL;
 }
 
-void Targ_RemoveTmpTarg(GNode *gn)
+static void Targ_RemoveTmpTarg(GNode *gn)
 {
-	if (gn->is_tmp) {
-		if (DEBUG(TARG)){
-			printf("\033[31mTarg_RemoveTmpTarg: Removing node %s\033[0m\n", gn->name);
-		}
+	if (DEBUG(TARG)){
+		printf("\033[31mTarg_RemoveTmpTarg: Removing node %s\033[0m\n", gn->name);
+	}
 
-		const char *file = gn->path != NULL ? gn->path : gn->name;
-		if (eunlink(file) == 0) {
-			if (!Targ_Silent(gn))
-				printf("rm %s\n", file);
-			gn->is_tmp = false; // mark as not temporary anymore
-		} else {
-			fprintf(stderr, "*** couldn't delete %s: %s\n", file, strerror(errno));
-		}
+	const char *file = gn->path != NULL ? gn->path : gn->name;
+	if (eunlink(file) == 0) {
+		if (!Targ_Silent(gn))
+			printf("rm %s\n", file);
+		gn->is_tmp = false;
+	} else {
+		fprintf(stderr, "*** couldn't delete %s: %s\n", file, strerror(errno));
 	}
 }
 
