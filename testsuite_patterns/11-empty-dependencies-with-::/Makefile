@@ -1,22 +1,23 @@
-# Goal: treaky generation of a file.out file without any dependency
+# Goal: tricky generation of a file.out file without any dependency
 
 file.out:
 
 %::
-	echo -n "This is a test file." > $@
+	echo "This is a test file." > $@
 
 clean:
 	rm -f file.out clean test
 
 # ----- test -----
-.PHONYY: test
+.PHONY: test
 
-# check if file.out is created
-# check if file.out contains "This is a test file."
-# if so echo "[OK]" else echo "[KO]"
 test:
 	@if [ -f file.out ]; then \
-		cat file.out | grep "This is a test file." > /dev/null && echo "[OK]" || echo "[KO]"; \
+		if grep -q "This is a test file." file.out 2>/dev/null; then \
+			echo "[OK]"; \
+		else \
+			echo "[KO]"; \
+		fi; \
 	else \
 		echo "[KO]"; \
 	fi

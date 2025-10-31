@@ -3,12 +3,12 @@
 all: file.out
 
 file.out: file1.out file2.out
-	# concat file1.out and file2.out into file.out
-	# add a space between the two files
-	cat file1.out | tr '\n' ' ' > $@; cat file2.out >> $@ 
+	cat file1.out > $@
+	echo -n " " >> $@
+	cat file2.out >> $@
 
 %.out: %.in
-	cp $? $@
+	cp $*.in $@
 
 clean:
 	rm -f file.out file1.out file2.out
@@ -16,12 +16,13 @@ clean:
 # ----- test -----
 .PHONY: test
 
-# check if file.out, file1.out and file2.out are created
-# check if file.out contains "This is a test file."
-# if so echo "[OK]" else echo "[KO]"
 test:
 	@if [ -f file.out ] && [ -f file1.out ] && [ -f file2.out ]; then \
-		cat file.out | grep "This is a test file." > /dev/null && echo "[OK]" || echo "[KO]"; \
+		if grep -q "This is a test file." file.out 2>/dev/null; then \
+			echo "[OK]"; \
+		else \
+			echo "[KO]"; \
+		fi; \
 	else \
 		echo "[KO]"; \
 	fi
