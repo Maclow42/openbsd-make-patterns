@@ -123,6 +123,8 @@ static GNode *Targ_mk_node(const char *, const char *, unsigned int,
 #define Targ_mk_constant(n, type) \
     Targ_mk_special_node(n, sizeof(n), K_##n, type, SPECIAL_NONE, 0)
 
+static char *expand_from_char(char *src, size_t src_len, char* to_expand,
+	size_t to_expand_len, char *pattern_value, size_t pattern_value_len);
 static void Targ_RemoveTmpTarg(GNode *gn);
 
 GNode *begin_node, *end_node, *interrupt_node, *DEFAULT;
@@ -194,7 +196,9 @@ Targ_NewGNi(const char *name, const char *ename)
 }
 
 static char *
-expand_from_char(char *src, size_t src_len, char* to_expand, size_t to_expand_len, char *pattern_value, size_t pattern_value_len) {
+expand_from_char(char *src, size_t src_len, char* to_expand,
+	size_t to_expand_len, char *pattern_value, size_t pattern_value_len)
+{
 	if (src == NULL || pattern_value == NULL || to_expand == NULL) {
 		return NULL;
 	}
