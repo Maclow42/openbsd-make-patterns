@@ -155,7 +155,7 @@ struct GNode_ {
     bool in_cycle;	/* cycle detection */
 
 	bool is_pattern; /* true if the target is a pattern target */
-	bool has_been_expanded;
+	const GNode *expanded_from;
 	bool is_tmp; /* true if the target is a temporary target */
 	char *pattern_value;
 
