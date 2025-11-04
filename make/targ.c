@@ -315,6 +315,13 @@ Targ_CreateNodeFromPattern(GNode *pattern_gn, char *pattern_value,
 
 	/* Create new GNode with expanded name. */
 	new_gn = Targ_NewGNi(new_name, new_name + strlen(new_name));
+	if (new_gn == NULL) {
+		if (DEBUG(PATTERN))
+			printf("Targ_BuildFromPattern: ERROR: node creation failed.\n");
+		free(new_name);
+		return NULL;
+	}
+	
 	new_gn->expanded_from = pattern_gn;
 	new_gn->is_tmp = true;
 
@@ -325,12 +332,6 @@ Targ_CreateNodeFromPattern(GNode *pattern_gn, char *pattern_value,
 	ohash_insert(&targets, slot, new_gn);
 
 	free(new_name);
-	
-	if (new_gn == NULL) {
-		if (DEBUG(PATTERN))
-			printf("Targ_BuildFromPattern: ERROR: node creation failed.\n");
-		return NULL;
-	}
 
 	/* Copy commands from pattern_gn to new_gn. */
 	Targ_CopyCommands(new_gn, pattern_gn);
@@ -537,8 +538,8 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, char **expanded)
 					parent = Lst_Datum(ln);
 
 					if (DEBUG(PATTERN))
-						printf("\t - Targ_FindPatternMatchingNode: name = %s, 
-							parent_name = %s\n", name, parent->name);
+						printf("\t - name = %s, parent_name = %s\n",
+						    name, parent->name);
 
 					if (strcmp(name, parent->name) == 0) {
 						is_parent = true;
@@ -564,8 +565,7 @@ Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 		return;
 
 	if (DEBUG(PATTERN))
-		printf("Targ_RemoveTmpTarg: Removing node %s\n",
-		    gn->name);
+		printf("Targ_RemoveTmpTarg: Removing node %s\n", gn->name);
 
 	file = gn->path != NULL ? gn->path : gn->name;
 	if (eunlink(file) == 0) {
