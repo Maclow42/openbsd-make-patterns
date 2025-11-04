@@ -490,10 +490,6 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 	    (curr_name = find_file_hashi(dot, basename, ename, hv)) != NULL) {
 		if (DEBUG(DIR))
 			printf("in '.'\n");
-		if (strchr(basename, '%') != NULL) {
-			printf("returning %s\n", curr_name);
-			return curr_name;
-		}
 		return Str_dupi(name, ename);
 	}
 
@@ -510,10 +506,6 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 		    NULL) {
 			if (DEBUG(DIR))
 				printf("here...");
-			if (strchr(name, '%') != NULL) {
-				printf("returning %s\n", curr_name);
-				return curr_name;
-			}
 			if (hasSlash) {
 				/* If the name had a slash, its initial
 				 * components and p's final components must

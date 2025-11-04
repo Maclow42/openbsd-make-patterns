@@ -530,22 +530,6 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, char **expanded)
 			is_parent = false;
 			if (gnode_from->expanded_from == gn) {
 				is_parent = true;
-			} else {
-				/* Check parents. */
-				ln = Lst_First(&gn->parents);
-				for (parent = NULL; ln != NULL;
-				    ln = Lst_Adv(ln)) {
-					parent = Lst_Datum(ln);
-
-					if (DEBUG(PATTERN))
-						printf("\t - name = %s, parent_name = %s\n",
-						    name, parent->name);
-
-					if (strcmp(name, parent->name) == 0) {
-						is_parent = true;
-						break;
-					}
-				}
 			}
 
 			if (!is_parent && gn)
