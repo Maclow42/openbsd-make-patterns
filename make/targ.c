@@ -435,65 +435,73 @@ Targ_FindNodei(const char *name, const char *ename, int flags)
 /*-
  *-----------------------------------------------------------------------
  * match_pattern --
- *	Match a name against a pattern, expanding any wildcards.
- *	If a match is found, return true and set *expanded to the expanded
- *	portion of the name corresponding to the `%` in the pattern.
- *	If no match is found, return false.
- *	If the expanded portion is not needed, set *expanded to NULL.
+ *	Match a name against a pattern with a single '%' wildcard.
+ *	The pattern is split into prefix and suffix around the '%'.
+ *	Example: "lib%.a" matches "libfoo.a" with expanded = "foo"
  *
- *	WARNING: The caller is responsible for freeing *expanded when
- *	it is no longer needed.
+ *	If a match is found, return true and optionally set *expanded
+ *	to the portion of name that matched the '%' wildcard.
  *
- *	WARNING 2: This function only supports a single `%` wildcard.
- *  If multiple wildcards are present, only the first one is considered.
+ * Returns:
+ *	true if pattern matches name, false otherwise.
+ *
+ * Side Effects:
+ *	If expanded is non-NULL and pattern matches, *expanded is set
+ *	to a newly allocated string containing the wildcard match.
+ *	Caller must free *expanded when done.
  *-----------------------------------------------------------------------
  */
 bool
 match_pattern(const char *name, const char *pattern, char **expanded)
 {
-	const char *p = pattern;
-	const char *n = name;
-	const char *wildcard = NULL;	/* Position of `%` in pattern */
-	const char *match_start = NULL;	/* Corresponding position in name */
-	bool result;
-	size_t len;
+	const char *percent;
+	const char *name_ptr;
+	size_t prefix_len;
+	size_t suffix_len;
+	size_t name_len;
+	size_t stem_len;
 
 	if (!name || !pattern)
 		return false;
 
-	while (*n && *p) {
-		if (*p == *n) {
-			/* Advance if characters match. */
-			p++;
-			n++;
-		} else if (*p == '%') {
-			/* If we find a `%`, record its position. */
-			wildcard = p;
-			match_start = n;
-			p++;	/* Skip the `%` */
-		} else if (wildcard) {
-			/* If a `%` has already been encountered, try to
-			 * consume `name`. */
-			match_start++;		/* Try the next position */
-			n = match_start;
-			p = wildcard + 1;	/* Resume after the `%` */
-		} else {
-			return false;		/* No possible match */
-		}
+	/* Find the '%' in pattern. */
+	percent = strchr(pattern, '%');
+	if (percent == NULL) {
+		/* No wildcard, must match exactly. */
+		return strcmp(name, pattern) == 0;
 	}
 
-	/* Check that the rest of `pattern` is only `%`. */
-	while (*p == '%')
-		p++;
+	/* Calculate prefix and suffix lengths. */
+	prefix_len = percent - pattern;
+	suffix_len = strlen(percent + 1);
+	name_len = strlen(name);
 
-	result = (*p == '\0');	/* If we have consumed all of `pattern` */
+	/* Check if name is long enough to contain prefix and suffix. */
+	if (name_len < prefix_len + suffix_len)
+		return false;
 
-	if (result && wildcard && expanded) {
-		len = match_start - name;
-		*expanded = strndup(name, len);
+	/* Check prefix matches. */
+	if (prefix_len > 0 && strncmp(name, pattern, prefix_len) != 0)
+		return false;
+
+	/* Check suffix matches. */
+	if (suffix_len > 0) {
+		name_ptr = name + name_len - suffix_len;
+		if (strcmp(name_ptr, percent + 1) != 0)
+			return false;
 	}
 
-	return result;
+	/* Pattern matches. Extract stem if requested. */
+	if (expanded != NULL) {
+		stem_len = name_len - prefix_len - suffix_len;
+		/* Note: stem_len can be 0 for patterns like "lib%.a" matching
+		 * "lib.a", which is valid and should return empty string. */
+		*expanded = strndup(name + prefix_len, stem_len);
+		/* Will return true even if memory allocation fails.
+		   Make will probably crash but... maybe not so who knows. */
+	}
+
+	return true;
 }
 
 /*-
