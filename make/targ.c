@@ -124,14 +124,18 @@ static GNode *Targ_mk_node(const char *, const char *, unsigned int,
     Targ_mk_special_node(n, sizeof(n), K_##n, type, SPECIAL_NONE, 0)
 
 static GNode *
-Targ_BuildChildrenFromPattern(GNode *pattern_gn, char *pattern_value,
+Targ_CreateNodeFromPattern(GNode *pattern_gn, char *pattern_value,
 	size_t pattern_value_len);
 
-static char *expand_from_char(char *src, size_t src_len, char* to_expand,
-	size_t to_expand_len, char *pattern_value, size_t pattern_value_len);
+static void
+Targ_BuildChildFromPatternParent(GNode *parent_gn, GNode *child, char *pattern_value,
+	size_t pattern_value_len);
 
-static char *expand_pattern_from_char(char *src, size_t src_len,
-	char *pattern_value, size_t pattern_value_len);
+static char *expand_from_char(const char *src, size_t src_len, const char *to_expand,
+	size_t to_expand_len, const char *pattern_value, size_t pattern_value_len);
+
+static char *expand_pattern_from_char(const char *src, size_t src_len,
+	const char *pattern_value, size_t pattern_value_len);
 
 static void Targ_RemoveTmpTarg(void *child, void *unused UNUSED);
 
@@ -202,108 +206,119 @@ Targ_NewGNi(const char *name, const char *ename)
 	return Targ_mk_node(name, ename, OP_ZERO, SPECIAL_NONE, 0);
 }
 
+/*
+ * Expands 'to_expand' in src with pattern_value
+ * Returns a newly allocated string that must be freed by the caller.
+ * Returns NULL on error.
+ */
 static char *
-expand_from_char(char *src, size_t src_len, char* to_expand,
-	size_t to_expand_len, char *pattern_value, size_t pattern_value_len)
+expand_from_char(const char *src, size_t src_len, const char *to_expand,
+	size_t to_expand_len, const char *pattern_value, size_t pattern_value_len)
 {
-	char *expander;
+	const char *expander;
 	char *result;
 	size_t prefix_len;
 	size_t suffix_len;
 	size_t result_len;
 
-	if (src == NULL || pattern_value == NULL || to_expand == NULL) {
+	if (!src || !pattern_value || !to_expand)
 		return NULL;
-	}
 
 	expander = strstr(src, to_expand);
-	if (expander == NULL) {
-		// No match, return a copy of src
-		result = emalloc(src_len + 1);
-		memcpy(result, src, src_len);
-		result[src_len] = '\0';
-		return result;
+	if (!expander) {
+		/* No match, return a copy of src */
+		return strndup(src, src_len);
 	}
 
 	prefix_len = expander - src;
 	suffix_len = src_len - prefix_len - to_expand_len;
 	result_len = prefix_len + pattern_value_len + suffix_len;
+	
 	result = emalloc(result_len + 1);
-
 	memcpy(result, src, prefix_len);
 	memcpy(result + prefix_len, pattern_value, pattern_value_len);
-	memcpy(result + prefix_len + pattern_value_len, expander + to_expand_len, suffix_len);
+	memcpy(result + prefix_len + pattern_value_len, 
+	    expander + to_expand_len, suffix_len);
 	result[result_len] = '\0';
 
 	return result;
 }
 
+/*
+ * Expands pattern '%' in src with pattern_value
+ */
 char *
-expand_pattern_from_char(char *src, size_t src_len, char *pattern_value, size_t pattern_value_len)
+expand_pattern_from_char(const char *src, size_t src_len, 
+    const char *pattern_value, size_t pattern_value_len)
 {
-	return expand_from_char(src, src_len, "%", 1, pattern_value, pattern_value_len);
+	return expand_from_char(src, src_len, "%", 1, 
+	    pattern_value, pattern_value_len);
 }
 
 static void
 Targ_CopyCommands(GNode *dest, GNode *src)
 {
 	LstNode ln;
-	for (ln = Lst_First(&src->commands); ln != NULL; ln = Lst_Adv(ln)) {
-		struct command *cmd = Lst_Datum(ln);
-		const char *src = cmd->string;
-		size_t src_len = strlen(src);
+	struct command *cmd;
+	const char *cmd_str;
+	size_t cmd_len, elen;
+	struct command *new_cmd;
 
-		size_t elen = src_len;
-		struct command *new_cmd = emalloc(offsetof(struct command, string) + elen + 1);
+	for (ln = Lst_First(&src->commands); ln != NULL; ln = Lst_Adv(ln)) {
+		cmd = Lst_Datum(ln);
+		cmd_str = cmd->string;
+		cmd_len = strlen(cmd_str);
+		elen = cmd_len;
+
+		new_cmd = emalloc(offsetof(struct command, string) + elen + 1);
 		new_cmd->location = cmd->location;
-		memcpy(new_cmd->string, src, elen + 1);
+		memcpy(new_cmd->string, cmd_str, elen + 1);
 
 		Lst_AtEnd(&dest->commands, new_cmd);
 	}
 }
 
-/*
- * Complete parent_gn by using pattern_gn hierarchy, replacing % with
- * pattern_value
+/*-
+ *-----------------------------------------------------------------------
+ * Targ_CreateNodeFromPattern --
+ *	Create a new GNode from a pattern node by expanding the pattern
+ *	with pattern_value. It only creates the node and copies commands,
+ *	it does not link it to any parent or create its children.
+ *
+ * Returns:
+ *	The newly created GNode, or NULL on error.
+ *-----------------------------------------------------------------------
  */
 static GNode *
-Targ_BuildChildrenFromPattern(GNode *pattern_gn, char *pattern_value, size_t pattern_value_len)
+Targ_CreateNodeFromPattern(GNode *pattern_gn, char *pattern_value,
+    size_t pattern_value_len)
 {
-	char *new_name;	// The expanded name for the new child
-	GNode *new_gn;	// The new gnode created from the expanded name
-	LstNode ln;		
-	char *expanded_name;
-	size_t child_name_len;
-	GNode *child;
-	GNode *new_child;
+	char *new_name;
+	GNode *new_gn;
 	unsigned int slot;
-	unsigned int slot_child;
 	const char *ename;
 	uint32_t hv;
-	const char *name_child;
-	const char *ename_child;
-	uint32_t hv_child;
 
-	if(DEBUG(PATTERN)){
+	if (DEBUG(PATTERN))
 		printf("Building children %s ", pattern_gn->name);
-	}
 
-	// First compute expanded name, then allocate a node sized for it
-	new_name = expand_pattern_from_char(pattern_gn->name, strlen(pattern_gn->name), pattern_value, pattern_value_len);
-	if(new_name == NULL){
+	/* First compute expanded name. */
+	new_name = expand_pattern_from_char(pattern_gn->name,
+	    strlen(pattern_gn->name), pattern_value, pattern_value_len);
+	if (new_name == NULL) {
 		printf("Targ_BuildFromPattern: ERROR: expand_pattern_from_char failed.\n");
 		return NULL;
 	}
 
-	if(DEBUG(PATTERN)){
+	if (DEBUG(PATTERN))
 		printf("(new name: %s)\n", new_name);
-	}
 
+	/* Create new GNode with expanded name. */
 	new_gn = Targ_NewGNi(new_name, new_name + strlen(new_name));
 	new_gn->expanded_from = pattern_gn;
 	new_gn->is_tmp = true;
 
-	// Search its place in ohash and insert it
+	/* Search its place in ohash and insert it. */
 	ename = new_name + strlen(new_name);
 	hv = ohash_interval(new_name, &ename);
 	slot = ohash_lookup_interval(&targets, new_name, ename, hv);
@@ -311,133 +326,87 @@ Targ_BuildChildrenFromPattern(GNode *pattern_gn, char *pattern_value, size_t pat
 
 	free(new_name);
 	
-	if(new_gn == NULL){
-		if(DEBUG(PATTERN)){
+	if (new_gn == NULL) {
+		if (DEBUG(PATTERN))
 			printf("Targ_BuildFromPattern: ERROR: node creation failed.\n");
-		}
 		return NULL;
 	}
 
-	// Copy commands from pattern_gn to new_gn
+	/* Copy commands from pattern_gn to new_gn. */
 	Targ_CopyCommands(new_gn, pattern_gn);
 
-	// now, we need to copy also each child of the node
-	// For each child, we need to replace % with pattern_value
-	// If a gnode is already existing with the new name, we don't create a new one and we just link it
-	for (ln = Lst_First(&pattern_gn->children); ln != NULL; ln = Lst_Adv(ln)) {
-		child = Lst_Datum(ln);
-		if(child == NULL){
-			if(DEBUG(PATTERN)){
-				printf("Targ_BuildFromPattern: ERROR: child is NULL.\n");
-			}
-			return NULL;
-		}
-
-		if(DEBUG(PATTERN)){
-			printf("\t - Building child %s ", child->name);
-		}
-		
-		// Get the full expanded name
-		expanded_name = NULL;
-		child_name_len = strlen(child->name);
-		expanded_name = expand_pattern_from_char(child->name, child_name_len, pattern_value, pattern_value_len);
-		if(expanded_name == NULL){
-			if(DEBUG(PATTERN)){
-				printf("Targ_BuildFromPattern: ERROR: expand_pattern_from_char failed.\n");
-			}
-			return NULL;
-		}
-
-		if(DEBUG(PATTERN)){
-			printf("(expanded new name: %s)\n", expanded_name);
-		}
-
-		// Check if a gnode with the expanded name already exists
-		new_child = Targ_FindNode(expanded_name, TARG_NOCREATE);
-		if(new_child == NULL){
-			if(DEBUG(PATTERN)){
-				printf("\t - No existing target with this name => creating it\n");
-			}
-
-			// Create a new gnode from the child pattern
-			new_child = Targ_BuildChildrenFromPattern(child, pattern_value, pattern_value_len);
-			if(new_child == NULL){
-				printf("Targ_BuildFromPattern: ERROR: node creation failed.\n");
-				return NULL;
-			}
-		} else if (DEBUG(PATTERN)) {
-			printf("\t - A target is already existing with this name => linking it\n");
-		}
-
-		free(expanded_name);
-		Lst_AtEnd(&new_gn->children, new_child);
-		Lst_AtEnd(&new_child->parents, new_gn);
-
-		// Search its place in ohash and insert it
-		name_child = new_child->name;
-		ename_child = name_child + strlen(name_child);
-		hv_child = ohash_interval(name_child, &ename_child);
-		slot_child = ohash_lookup_interval(&targets, name_child, ename_child, hv_child);
-		ohash_insert(&targets, slot_child, new_child);
-
-		new_gn->children_left++;
-	}
-
-	new_gn->is_pattern = false;
-	new_gn->pattern_value = strndup(pattern_value, pattern_value_len);
-	
 	return new_gn;
 }
 
+static void
+Targ_BuildChildFromPatternParent(GNode *parent_gn, GNode *child,
+    char *pattern_value, size_t pattern_value_len)
+{
+	GNode *new_child;
+
+	/* Create new node from pattern. */
+	new_child = Targ_CreateNodeFromPattern(child, pattern_value,
+	    pattern_value_len);
+	if (new_child == NULL) {
+		printf("Targ_BuildChildFromPatternParent: ERROR: node creation failed.\n");
+		return;
+	}
+
+	/* Recursively build and link all children from the pattern. */
+	Targ_BuildFromPattern(new_child, child, pattern_value,
+	    pattern_value_len);
+
+	new_child->is_pattern = false;
+	new_child->pattern_value = strndup(pattern_value, pattern_value_len);
+
+	/* Link new_child to parent_gn and vice-versa. */
+	Lst_AtEnd(&parent_gn->children, new_child);
+	Lst_AtEnd(&new_child->parents, parent_gn);
+
+	parent_gn->children_left++;
+}
+
+/*-
+ *-----------------------------------------------------------------------
+ * Targ_BuildFromPattern --
+ *	Build a new GNode from a pattern node by expanding the pattern
+ *	with pattern_value. This function creates the new node, builds
+ *	its children recursively, and links it to parent_gn.
+ *-----------------------------------------------------------------------
+ */
 void
-Targ_BuildFromPattern(GNode *parent_gn, GNode *pattern_gn, char *pattern_value, size_t pattern_value_len)
+Targ_BuildFromPattern(GNode *parent_gn, GNode *pattern_gn, char *pattern_value,
+    size_t pattern_value_len)
 {
 	LstNode ln;
 	GNode *child;
-	GNode *new_child;
 
-	if(parent_gn == NULL){
-		printf("Targ_BuildFromPattern: ERROR: parent_gn is NULL.\n");
+	if (!parent_gn || !pattern_gn || !pattern_value ||
+	    pattern_value_len == 0) {
+		if (DEBUG(PATTERN))
+			printf("Targ_BuildFromPattern: ERROR: invalid parameters.\n");
 		return;
 	}
 
-	if(pattern_gn == NULL){
-		printf("Targ_BuildFromPattern: ERROR: pattern_gn is NULL.\n");
-		return;
-	}
-
-	if(pattern_value == NULL){
-		printf("Targ_BuildFromPattern: ERROR: pattern_value is NULL.\n");
-		return;
-	}
-
-	if(!pattern_gn->is_pattern){
-		printf("Targ_BuildFromPattern: ERROR: pattern_gn is not a pattern.\n");
-		return;
-	}
-
-	if(DEBUG(PATTERN)){
+	if (DEBUG(PATTERN))
 		printf("Building children of %s from %s with %%=%.*s\n",
-			parent_gn->name, pattern_gn->name,
-			(int)pattern_value_len, pattern_value);
-	}
+		    parent_gn->name, pattern_gn->name,
+		    (int)pattern_value_len, pattern_value);
 
-	// for each child of pattern_gn, create a new child for parent_gn
-	// replacing % with pattern_value
-	for (ln = Lst_First(&pattern_gn->children); ln != NULL; ln = Lst_Adv(ln)) {
+	/* For each child of pattern_gn, create a new child for parent_gn
+	 * replacing % with pattern_value. */
+	for (ln = Lst_First(&pattern_gn->children); ln != NULL;
+	    ln = Lst_Adv(ln)) {
 		child = Lst_Datum(ln);
-		new_child = Targ_BuildChildrenFromPattern(child, pattern_value, pattern_value_len);
-		if(new_child == NULL){
-			printf("Targ_BuildFromPattern: ERROR: Targ_BuildChildrenFromPattern failed.\n");
-			return;
-		}
-		// link new_child to parent_gn
-		Lst_AtEnd(&parent_gn->children, new_child);
-		Lst_AtEnd(&new_child->parents, parent_gn);
-		parent_gn->children_left++;
+		Targ_BuildChildFromPatternParent(parent_gn, child,
+		    pattern_value, pattern_value_len);
 	}
 
-	// Copy commands from pattern_gn to parent_gn
+	/* Copy commands from pattern_gn to parent_gn.
+	 * It works because we are on a node without children (called
+	 * from "expand_children_from").
+	 * This means that current node does not have its own commands
+	 * so we can safely copy commands from pattern_gn. */
 	Targ_CopyCommands(parent_gn, pattern_gn);
 }
 
@@ -474,99 +443,118 @@ Targ_FindNodei(const char *name, const char *ename, int flags)
  * 
  * WARNING 2: This function only supports a single `%` wildcard in the pattern.
  */
-bool match_pattern(const char *name, const char *pattern, char** expanded)
+/*-
+ *-----------------------------------------------------------------------
+ * match_pattern --
+ *	Match a name against a pattern, expanding any wildcards.
+ *	If a match is found, return true and set *expanded to the expanded
+ *	portion of the name corresponding to the `%` in the pattern.
+ *	If no match is found, return false.
+ *	If the expanded portion is not needed, set *expanded to NULL.
+ *
+ *	WARNING: The caller is responsible for freeing *expanded when
+ *	it is no longer needed.
+ *
+ *	WARNING 2: This function only supports a single `%` wildcard.
+ *-----------------------------------------------------------------------
+ */
+bool
+match_pattern(const char *name, const char *pattern, char **expanded)
 {
 	const char *p = pattern;
 	const char *n = name;
-	const char *wildcard = NULL;  // Position of `%` in pattern
-	const char *match_start = NULL;  // Corresponding position in name
+	const char *wildcard = NULL;	/* Position of `%` in pattern */
+	const char *match_start = NULL;	/* Corresponding position in name */
 	bool result;
 	size_t len;
 
-	if (!name || !pattern) {
+	if (!name || !pattern)
 		return false;
-	}
 
 	while (*n && *p) {
 		if (*p == *n) {
-			// Advance if characters match
+			/* Advance if characters match. */
 			p++;
 			n++;
 		} else if (*p == '%') {
-			// If we find a `%`, record its position
+			/* If we find a `%`, record its position. */
 			wildcard = p;
 			match_start = n;
-			p++; // Skip the `%`
+			p++;	/* Skip the `%` */
 		} else if (wildcard) {
-			// If a `%` has already been encountered, try to consume `name`
-			match_start++;  // Try the next position
+			/* If a `%` has already been encountered, try to
+			 * consume `name`. */
+			match_start++;		/* Try the next position */
 			n = match_start;
-			p = wildcard + 1;  // Resume after the `%`
+			p = wildcard + 1;	/* Resume after the `%` */
 		} else {
-			return false;  // No possible match
+			return false;		/* No possible match */
 		}
 	}
 
-	// Check that the rest of `pattern` is only `%`
-	while (*p == '%') {
+	/* Check that the rest of `pattern` is only `%`. */
+	while (*p == '%')
 		p++;
-	}
 
-	result = (*p == '\0'); // If we have consumed all of `pattern`
+	result = (*p == '\0');	/* If we have consumed all of `pattern` */
 
 	if (result && wildcard && expanded) {
-    	len = match_start - name;
-    	*expanded = strndup(name, len);
+		len = match_start - name;
+		*expanded = strndup(name, len);
 	}
 
 	return result;
 }
 
-/* 
- * Take a name as parameter and search for all ->is_pattern targets whose ->name match with param
+/*-
+ *-----------------------------------------------------------------------
+ * Targ_FindPatternMatchingNode --
+ *	Take a name as parameter and search for all ->is_pattern targets
+ *	whose ->name match with the parameter.
+ *
+ * Returns:
+ *	The matching GNode, or NULL if no match found.
+ *-----------------------------------------------------------------------
  */
 GNode *
 Targ_FindPatternMatchingNode(const GNode *gnode_from, char **expanded)
 {
-	// Iterate over each target in the table
-	// If the target is a pattern and the target's name matches the name passed as a parameter,
-	// return the target
-	const char* name = gnode_from->name;
-	size_t len = strlen(name);
-	GNode *gn = NULL;
-	unsigned int i = 0;
-	for (gn = ohash_first(&targets, &i); gn != NULL; gn = ohash_next(&targets, &i)) {
-		if (gn->is_pattern && (strcmp(name, gn->name) != 0) && match_pattern(name, gn->name, expanded)) {
+	const char *name = gnode_from->name;
+	GNode *gn;
+	unsigned int i;
+	bool is_parent;
+	LstNode ln;
+	GNode *parent;
 
-			// check if gn not a parent of name
-			bool is_parent = false;
-			if(gnode_from->expanded_from == gn) {
+	/* Iterate over each target in the table.
+	 * If the target is a pattern and the target's name matches the name
+	 * passed as a parameter, return the target. */
+	gn = NULL;
+	i = 0;
+	for (gn = ohash_first(&targets, &i); gn != NULL;
+	    gn = ohash_next(&targets, &i)) {
+		if (gn->is_pattern && (strcmp(name, gn->name) != 0) &&
+		    match_pattern(name, gn->name, expanded)) {
+
+			/* Check if gn not a parent of name. */
+			is_parent = false;
+			if (gnode_from->expanded_from == gn) {
 				is_parent = true;
 			} else {
-				// check parents (useful ?)
-				LstNode ln = Lst_First(&gn->parents);
-				for (GNode *parent = NULL; ln != NULL; ln = Lst_Adv(ln)) {
-					size_t parent_len;
-					char *curr_name;
-					char *parent_name;
-					
+				/* Check parents. */
+				ln = Lst_First(&gn->parents);
+				for (parent = NULL; ln != NULL;
+				    ln = Lst_Adv(ln)) {
 					parent = Lst_Datum(ln);
-					curr_name = strndup(name, len);
-					parent_len = strlen(parent->name);
-					parent_name = strndup(parent->name, parent_len);
 
-					if (DEBUG(PATTERN)) {
-						printf("\t - Targ_FindPatternMatchingNode: name = %s, parent_name = %s\n", curr_name, parent_name);
-					}
+					if (DEBUG(PATTERN))
+						printf("\t - Targ_FindPatternMatchingNode: name = %s, parent_name = %s\n",
+						    name, parent->name);
 
-					if (len == parent_len && strcmp(curr_name, parent_name) == 0) {
+					if (strcmp(name, parent->name) == 0) {
 						is_parent = true;
-						free(curr_name);
-						free(parent_name);
 						break;
 					}
-					free(curr_name);
-					free(parent_name);
 				}
 			}
 
@@ -583,23 +571,26 @@ Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 	GNode *gn = child;
 	const char *file;
 
-	if (gn != NULL && gn->expanded_from != NULL && gn->is_tmp) {
-		if (DEBUG(PATTERN)){
-			printf("\033[31mTarg_RemoveTmpTarg: Removing node %s\033[0m\n", gn->name);
-		}
+	if (!gn || !gn->expanded_from || !gn->is_tmp)
+		return;
 
-		file = gn->path != NULL ? gn->path : gn->name;
-		if (eunlink(file) == 0) {
-			if (!Targ_Silent(gn))
-				printf("rm %s\n", file);
-			gn->is_tmp = false;
-		} else {
-			fprintf(stderr, "*** couldn't delete %s: %s\n", file, strerror(errno));
-		}
+	if (DEBUG(PATTERN))
+		printf("\033[31mTarg_RemoveTmpTarg: Removing node %s\033[0m\n",
+		    gn->name);
+
+	file = gn->path != NULL ? gn->path : gn->name;
+	if (eunlink(file) == 0) {
+		if (!Targ_Silent(gn))
+			printf("rm %s\n", file);
+		gn->is_tmp = false;
+	} else {
+		fprintf(stderr, "*** couldn't delete %s: %s\n", file,
+		    strerror(errno));
 	}
 }
 
-void Targ_RemoveAllTmpChildren(GNode *gn)
+void
+Targ_RemoveAllTmpChildren(GNode *gn)
 {
 	Lst_ForEach(&gn->children, Targ_RemoveTmpTarg, NULL);
 }
