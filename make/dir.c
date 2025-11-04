@@ -290,15 +290,16 @@ static char *
 find_file_hashi(struct PathEntry *p, const char *file, const char *efile,
     uint32_t hv)
 {
-	struct ohash 	*h = &p->files;
+	struct ohash *h = &p->files;
+	char *result;
 
 	if (strchr(file, '%') != NULL) {
-		char *result = find_file_hashi_with_pattern(dot, file);
+		result = find_file_hashi_with_pattern(dot, file);
 
-		if(result){
-			if(DEBUG(PATTERN)){
-				printf("find_file_hashi: Matched file: %s\n", result);
-			}
+		if (result != NULL) {
+			if (DEBUG(PATTERN))
+				printf("find_file_hashi: Matched file: %s\n",
+				    result);
 			return result;
 		}
 	}
@@ -311,16 +312,16 @@ find_file_hashi_with_pattern(struct PathEntry *p, const char *pattern)
 {
 	unsigned int search;
 	const char *entry;
-	char *matched_name = NULL;
+	char *matched_name;
 
 	for (entry = ohash_first(&p->files, &search); entry != NULL;
-		 entry = ohash_next(&p->files, &search)) {
+	    entry = ohash_next(&p->files, &search)) {
 		matched_name = NULL;
 		if (match_pattern(entry, pattern, &matched_name)) {
 
-			if (DEBUG(PATTERN)) {
-				printf("find_file_hashi_with_pattern: Matched file: %s\n", entry);
-			}
+			if (DEBUG(PATTERN))
+				printf("find_file_hashi_with_pattern: Matched file: %s\n",
+				    entry);
 			
 			if (matched_name)
 				free(matched_name);
@@ -489,7 +490,7 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 	    (curr_name = find_file_hashi(dot, basename, ename, hv)) != NULL) {
 		if (DEBUG(DIR))
 			printf("in '.'\n");
-		if (strchr(basename, '%') != NULL){
+		if (strchr(basename, '%') != NULL) {
 			printf("returning %s\n", curr_name);
 			return curr_name;
 		}
@@ -505,10 +506,11 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 		p = Lst_Datum(ln);
 		if (DEBUG(DIR))
 			printf("%s...", p->name);
-		if ((curr_name = find_file_hashi(p, basename, ename, hv)) != NULL) {
+		if ((curr_name = find_file_hashi(p, basename, ename, hv)) !=
+		    NULL) {
 			if (DEBUG(DIR))
 				printf("here...");
-			if (strchr(name, '%') != NULL){
+			if (strchr(name, '%') != NULL) {
 				printf("returning %s\n", curr_name);
 				return curr_name;
 			}

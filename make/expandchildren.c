@@ -218,7 +218,7 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 	if (DEBUG(PATTERN)) {
 		printf("\t - expand %s\n", cgn->name);
 	}
-
+	
 	/* First do variable expansion -- this takes precedence over wildcard
 	 * expansion. If the result contains wildcards, they'll be gotten to
 	 * later since the resulting words are tacked on to the end of the
@@ -241,48 +241,49 @@ void
 expand_children_from(GNode *parent, LstNode from)
 {
 	LstNode np, ln;
+	GNode *matching;
+	char *expanded;
 
-	// If not children at the beginning, try to find some in pattern rules
-	if(parent->children_left == 0){
-		GNode *matching;
-		char *expanded = NULL;
+	/* If no children at the beginning, try to find some in pattern rules. */
+	if (parent->children_left == 0) {
+		expanded = NULL;
 
-		if(DEBUG(PATTERN)) {
-			printf("\t\t => No children found for \"%s\"\n", parent->name);
+		if (DEBUG(PATTERN)) {
+			printf("\t\t => No children found for \"%s\"\n",
+			    parent->name);
 			printf("\t\t => Searching for matching pattern targets...\n");
 		}
 
-		if((matching = Targ_FindPatternMatchingNode(parent, &expanded))){
-			if(DEBUG(PATTERN)){
-				printf("\t\t => Matching pattern target found: %s\n", matching->name);
-			}
+		matching = Targ_FindPatternMatchingNode(parent, &expanded);
+		if (matching != NULL) {
+			if (DEBUG(PATTERN))
+				printf("\t\t => Matching pattern target found: %s\n",
+				    matching->name);
 
-			// replace all % pattern of matching node with parent node
-			// and add it to the parent children list
-			Targ_BuildFromPattern(parent, matching, expanded, strlen(expanded));
-			if(DEBUG(PATTERN)){
-				printf("All children of %s have been built.\n\n", parent->name);
-			}
+			/* Replace all % pattern of matching node with parent
+			 * node and add it to the parent children list. */
+			Targ_BuildFromPattern(parent, matching, expanded,
+			    strlen(expanded));
+			if (DEBUG(PATTERN))
+				printf("All children of %s have been built.\n\n",
+				    parent->name);
 
 			return;
 		}
 
-		if(DEBUG(PATTERN)) {
-		// else print in red "No children found"
-			printf("\tNo pattern matching found for %s\n", parent->name);
-		}
+		if (DEBUG(PATTERN))
+			printf("\tNo pattern matching found for %s\n",
+			    parent->name);
 
-		// If no children found, the node should exist
+		/* If no children found, the node should exist. */
 		parent->is_tmp = false;
 	}
 
+	if (DEBUG(PATTERN))
+		printf("Expanding children of %s\n", parent->name);
+
 	for (ln = from; ln != NULL; ln = np) {
 		np = Lst_Adv(ln);
-
-		if(DEBUG(PATTERN)) {
-			printf("Expanding children of %s\n", parent->name);
-		}
-
 		ExpandChildren(ln, parent);
 	}
 }

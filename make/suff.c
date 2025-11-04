@@ -1252,14 +1252,17 @@ sfnd_abort:
 			gn->path = Dir_FindFile(gn->name,
 			    (targ == NULL ? defaultPath :
 			    &targ->suff->searchPath));
-			if(gn->is_pattern && gn->path != NULL){
-				// Encounting a pattern rule matching with a real file
-				// set tmp to false to prevent deletion later
-				int i = 0;
+			if (gn->is_pattern && gn->path != NULL) {
+				int i;
+				/* Encountering a pattern rule matching with a
+				 * real file set tmp to false to prevent
+				 * deletion later. */
 				gn->is_tmp = false;
-				for(;(*(gn->name+i) = gn->path[i]); i++);
-				*(gn->name+i) = '\0';
-				printf("SuffFindNormalDeps: New name: %s\n", gn->name);
+				for (i = 0; (*(gn->name + i) = gn->path[i]); i++)
+					continue;
+				*(gn->name + i) = '\0';
+				printf("SuffFindNormalDeps: New name: %s\n",
+				    gn->name);
 			}
 			if (gn->path != NULL) {
 				char *ptr;
