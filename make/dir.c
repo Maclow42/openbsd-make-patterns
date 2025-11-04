@@ -221,8 +221,8 @@ static void add_file(struct PathEntry *, const char *);
 static char *find_file_hashi(struct PathEntry *, const char *, const char *,
     uint32_t);
 
-static char *find_file_hashi_with_pattern(struct PathEntry *p, const char *pattern, 
-    uint32_t hv);
+static char *find_file_hashi_with_pattern(struct PathEntry *p,
+	const char *pattern);
 
 /* stamp = find_stampi(name, end): look for (name, end) in the global
  *	cache. */
@@ -293,21 +293,21 @@ find_file_hashi(struct PathEntry *p, const char *file, const char *efile,
 	struct ohash 	*h = &p->files;
 
 	if (strchr(file, '%') != NULL) {
-		char *result = find_file_hashi_with_pattern(dot, file, hv);
+		char *result = find_file_hashi_with_pattern(dot, file);
 
-		if(DEBUG(PATTERN)) {
-			printf("find_file_hashi: Matched file: %s\n", result);
-		}
-
-		if(result)
+		if(result){
+			if(DEBUG(PATTERN)){
+				printf("find_file_hashi: Matched file: %s\n", result);
+			}
 			return result;
+		}
 	}
 
 	return ohash_find(h, ohash_lookup_interval(h, file, efile, hv));
 }
 
 static char *
-find_file_hashi_with_pattern(struct PathEntry *p, const char *pattern, uint32_t hv)
+find_file_hashi_with_pattern(struct PathEntry *p, const char *pattern)
 {
 	unsigned int search;
 	const char *entry;
@@ -462,6 +462,7 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 			/* Entry for mtimes table */
 	uint32_t hv;	/* hash value for last component in file name */
 	char *q;	/* Str_dupi(name, ename) */
+	char *curr_name;
 
 	/* Find the final component of the name and note whether name has a
 	 * slash in it */
@@ -481,7 +482,6 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 	/* Unless checkCurDirFirst is false, we always look for
 	 * the file in the current directory before anywhere else
 	 * and we always return exactly what the caller specified. */
-	char *curr_name;
 	if (checkCurdirFirst &&
 	    (!hasSlash || (basename - name == 2 && *name == '.')) &&
 	    (curr_name = find_file_hashi(dot, basename, ename, hv)) != NULL) {
@@ -503,7 +503,6 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 		p = Lst_Datum(ln);
 		if (DEBUG(DIR))
 			printf("%s...", p->name);
-		char *curr_name;
 		if ((curr_name = find_file_hashi(p, basename, ename, hv)) != NULL) {
 			if (DEBUG(DIR))
 				printf("here...");
