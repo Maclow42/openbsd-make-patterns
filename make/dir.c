@@ -465,7 +465,6 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 			/* Entry for mtimes table */
 	uint32_t hv;	/* hash value for last component in file name */
 	char *q;	/* Str_dupi(name, ename) */
-	char *curr_name;
 
 	/* Find the final component of the name and note whether name has a
 	 * slash in it */
@@ -487,7 +486,7 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 	 * and we always return exactly what the caller specified. */
 	if (checkCurdirFirst &&
 	    (!hasSlash || (basename - name == 2 && *name == '.')) &&
-	    (curr_name = find_file_hashi(dot, basename, ename, hv)) != NULL) {
+	    (find_file_hashi(dot, basename, ename, hv) != NULL)) {
 		if (DEBUG(DIR))
 			printf("in '.'\n");
 		return Str_dupi(name, ename);
@@ -502,8 +501,7 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 		p = Lst_Datum(ln);
 		if (DEBUG(DIR))
 			printf("%s...", p->name);
-		if ((curr_name = find_file_hashi(p, basename, ename, hv)) !=
-		    NULL) {
+		if (find_file_hashi(p, basename, ename, hv) != NULL) {
 			if (DEBUG(DIR))
 				printf("here...");
 			if (hasSlash) {
