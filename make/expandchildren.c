@@ -213,7 +213,7 @@ static void
 ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
     GNode *pgn)
 {
-	GNode *cgn = Lst_Datum(ln);
+	GNode	*cgn = Lst_Datum(ln);
 
 	if (DEBUG(PATTERN)) {
 		printf("\t - expand %s\n", cgn->name);

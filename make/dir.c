@@ -290,7 +290,7 @@ static char *
 find_file_hashi(struct PathEntry *p, const char *file, const char *efile,
     uint32_t hv)
 {
-	struct ohash *h = &p->files;
+	struct ohash 	*h = &p->files;
 	char *result;
 
 	if (strchr(file, '%') != NULL) {
@@ -486,7 +486,7 @@ Dir_FindFileComplexi(const char *name, const char *ename, Lst path,
 	 * and we always return exactly what the caller specified. */
 	if (checkCurdirFirst &&
 	    (!hasSlash || (basename - name == 2 && *name == '.')) &&
-	    (find_file_hashi(dot, basename, ename, hv) != NULL)) {
+	    find_file_hashi(dot, basename, ename, hv) != NULL) {
 		if (DEBUG(DIR))
 			printf("in '.'\n");
 		return Str_dupi(name, ename);
