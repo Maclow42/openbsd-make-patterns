@@ -294,7 +294,7 @@ find_file_hashi(struct PathEntry *p, const char *file, const char *efile,
 	char *result;
 
 	if (strchr(file, '%') != NULL) {
-		result = find_file_hashi_with_pattern(dot, file);
+		result = find_file_hashi_with_pattern(p, file);
 
 		if (result != NULL) {
 			if (DEBUG(PATTERN))
