@@ -431,18 +431,6 @@ Targ_FindNodei(const char *name, const char *ename, int flags)
 	return gn;
 }
 
-/*
- * Match a name against a pattern, expanding any wildcards.
- * If a match is found, return true and set *expanded to the expanded
- * portion of the name corresponding to the `%` in the pattern.
- * If no match is found, return false.
- * If the expanded portion is not needed, set *expanded to NULL.
- * 
- * WARNING: The caller is responsible for freeing *expanded when
- * it is no longer needed.
- * 
- * WARNING 2: This function only supports a single `%` wildcard in the pattern.
- */
 /*-
  *-----------------------------------------------------------------------
  * match_pattern --
@@ -456,6 +444,7 @@ Targ_FindNodei(const char *name, const char *ename, int flags)
  *	it is no longer needed.
  *
  *	WARNING 2: This function only supports a single `%` wildcard.
+ *  If multiple wildcards are present, only the first one is considered.
  *-----------------------------------------------------------------------
  */
 bool
@@ -548,8 +537,8 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, char **expanded)
 					parent = Lst_Datum(ln);
 
 					if (DEBUG(PATTERN))
-						printf("\t - Targ_FindPatternMatchingNode: name = %s, parent_name = %s\n",
-						    name, parent->name);
+						printf("\t - Targ_FindPatternMatchingNode: name = %s, 
+							parent_name = %s\n", name, parent->name);
 
 					if (strcmp(name, parent->name) == 0) {
 						is_parent = true;
@@ -575,7 +564,7 @@ Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 		return;
 
 	if (DEBUG(PATTERN))
-		printf("\033[31mTarg_RemoveTmpTarg: Removing node %s\033[0m\n",
+		printf("Targ_RemoveTmpTarg: Removing node %s\n",
 		    gn->name);
 
 	file = gn->path != NULL ? gn->path : gn->name;
