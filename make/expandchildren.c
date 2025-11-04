@@ -216,32 +216,7 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 	GNode *cgn = Lst_Datum(ln);
 
 	if (DEBUG(PATTERN)) {
-		printf("\t - expand %s", cgn->name);
-	}
-
-	// if parent parrent is a pattern and its pattern value is registred
-	if(pgn->is_pattern && pgn->pattern_value != NULL){
-		size_t pattern_len = 0;
-		size_t suffix_len = 0;
-
-		// replace all % pattern of child with parent node's
-		char *percent = strchr(cgn->name, '%');
-		if(percent == NULL){
-			printf("ExpandChildren: ERROR, percent is NULL\n");
-			return;
-		}
-		pattern_len = strlen(pgn->pattern_value);
-		suffix_len = strlen(percent + 1);
-		memmove(percent + pattern_len, percent + 1, suffix_len + 1);
-		memcpy(percent, pgn->pattern_value, pattern_len);
-
-		if(DEBUG(PATTERN)){
-			printf(" (new name: %s)", cgn->name);
-		}
-	}
-
-	if(DEBUG(PATTERN)){
-		printf("\n");
+		printf("\t - expand %s\n", cgn->name);
 	}
 
 	/* First do variable expansion -- this takes precedence over wildcard
