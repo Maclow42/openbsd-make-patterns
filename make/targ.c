@@ -113,6 +113,8 @@
 #include "dump.h"
 
 static struct ohash targets;	/* hash table of targets */
+static bool pattern_gnode_present = false;
+
 struct ohash_info gnode_info = {
 	offsetof(GNode, name), NULL, hash_calloc, hash_free, element_alloc
 };
@@ -191,6 +193,7 @@ Targ_mk_node(const char *name, const char *ename,
 	gn->groupling = NULL;
 	gn->is_pattern = (strchr(name, '%') != NULL);
 	gn->is_tmp = gn->is_pattern;
+	pattern_gnode_present |= gn->is_pattern;
 
 #ifdef STATS_GN_CREATION
 	STAT_GN_COUNT++;
@@ -520,6 +523,11 @@ match_pattern(const char *name, const char *pattern, char **expanded)
 GNode *
 Targ_FindPatternMatchingNode(const GNode *gnode_from, char **expanded)
 {
+	/* If no pattern gnode has been created, we do not try to search one */
+	if (!pattern_gnode_present) {
+		return NULL;
+	}
+
 	const char *name = gnode_from->name;
 	GNode *gn;
 	unsigned int i;
@@ -587,6 +595,13 @@ Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 void
 Targ_RemoveAllTmpChildren(GNode *gn)
 {
+	/* Tmp children are only created by pattern rules.
+	   If no pattern gnode has been created, we do not try
+	   to remove tmp children. */
+	if (!pattern_gnode_present) {
+		return;
+	}
+
 	Lst_ForEach(&gn->children, Targ_RemoveTmpTarg, NULL);
 }
 
