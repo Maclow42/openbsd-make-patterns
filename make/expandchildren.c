@@ -242,11 +242,10 @@ expand_children_from(GNode *parent, LstNode from)
 {
 	LstNode np, ln;
 	GNode *matching;
-	char *expanded;
 
 	/* If no children at the beginning, try to find some in pattern rules. */
 	if (parent->children_left == 0) {
-		expanded = NULL;
+		char *expanded = NULL;
 
 		if (DEBUG(PATTERN)) {
 			printf("\t\t => No children found for \"%s\"\n",
@@ -256,6 +255,12 @@ expand_children_from(GNode *parent, LstNode from)
 
 		matching = Targ_FindPatternMatchingNode(parent, &expanded);
 		if (matching != NULL) {
+			if (expanded == NULL) {
+				/* Memory allocation failed in match_pattern. */
+				fprintf(stderr, "expand_children_from: out of memory\n");
+				return;
+			}
+			
 			if (DEBUG(PATTERN))
 				printf("\t\t => Matching pattern target found: %s\n",
 				    matching->name);
@@ -264,6 +269,9 @@ expand_children_from(GNode *parent, LstNode from)
 			 * node and add it to the parent children list. */
 			Targ_BuildFromPattern(parent, matching, expanded,
 			    strlen(expanded));
+			
+			free(expanded);
+			
 			if (DEBUG(PATTERN))
 				printf("All children of %s have been built.\n\n",
 				    parent->name);
