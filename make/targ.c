@@ -191,7 +191,6 @@ Targ_mk_node(const char *name, const char *ename,
 	gn->groupling = NULL;
 	gn->is_pattern = (strchr(name, '%') != NULL);
 	gn->is_tmp = gn->is_pattern;
-	gn->pattern_value = NULL;
 
 #ifdef STATS_GN_CREATION
 	STAT_GN_COUNT++;
@@ -358,7 +357,6 @@ Targ_BuildChildFromPatternParent(GNode *parent_gn, GNode *child,
 	    pattern_value_len);
 
 	new_child->is_pattern = false;
-	new_child->pattern_value = strndup(pattern_value, pattern_value_len);
 
 	/* Link new_child to parent_gn and vice-versa. */
 	Lst_AtEnd(&parent_gn->children, new_child);
@@ -382,12 +380,14 @@ Targ_BuildFromPattern(GNode *parent_gn, GNode *pattern_gn, char *pattern_value,
 	LstNode ln;
 	GNode *child;
 
-	if (!parent_gn || !pattern_gn || !pattern_value ||
-	    pattern_value_len == 0) {
+	if (!parent_gn || !pattern_gn || !pattern_value) {
 		if (DEBUG(PATTERN))
 			printf("Targ_BuildFromPattern: ERROR: invalid parameters.\n");
 		return;
 	}
+
+	/* Note: pattern_value_len can be 0 for empty stems (e.g., "lib%.a"
+	 * matching "lib.a"), which is valid. */
 
 	if (DEBUG(PATTERN))
 		printf("Building children of %s from %s with %%=%.*s\n",
@@ -497,8 +497,11 @@ match_pattern(const char *name, const char *pattern, char **expanded)
 		/* Note: stem_len can be 0 for patterns like "lib%.a" matching
 		 * "lib.a", which is valid and should return empty string. */
 		*expanded = strndup(name + prefix_len, stem_len);
-		/* Will return true even if memory allocation fails.
-		   Make will probably crash but... maybe not so who knows. */
+		if (*expanded == NULL) {
+			/* Memory allocation failed. */
+			fprintf(stderr, "match_pattern: out of memory\n");
+			return false;
+		}
 	}
 
 	return true;
@@ -523,6 +526,7 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, char **expanded)
 	bool is_parent;
 	LstNode ln;
 	GNode *parent;
+	char *temp_expanded;
 
 	/* Iterate over each target in the table.
 	 * If the target is a pattern and the target's name matches the name
@@ -531,8 +535,9 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, char **expanded)
 	i = 0;
 	for (gn = ohash_first(&targets, &i); gn != NULL;
 	    gn = ohash_next(&targets, &i)) {
+		temp_expanded = NULL;
 		if (gn->is_pattern && (strcmp(name, gn->name) != 0) &&
-		    match_pattern(name, gn->name, expanded)) {
+		    match_pattern(name, gn->name, &temp_expanded)) {
 
 			/* Check if gn not a parent of name. */
 			is_parent = false;
@@ -540,8 +545,17 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, char **expanded)
 				is_parent = true;
 			}
 
-			if (!is_parent && gn)
+			if (!is_parent && gn) {
+				/* Transfer ownership to caller */
+				if (expanded != NULL)
+					*expanded = temp_expanded;
+				else
+					free(temp_expanded);
 				return gn;
+			}
+			
+			/* Pattern matched but is a parent, free and continue */
+			free(temp_expanded);
 		}
 	}
 	return NULL;
