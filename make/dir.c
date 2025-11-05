@@ -312,19 +312,15 @@ find_file_hashi_with_pattern(struct PathEntry *p, const char *pattern)
 {
 	unsigned int search;
 	const char *entry;
-	char *matched_name;
 
 	for (entry = ohash_first(&p->files, &search); entry != NULL;
 	    entry = ohash_next(&p->files, &search)) {
-		matched_name = NULL;
-		if (match_pattern(entry, pattern, &matched_name)) {
+		if (match_pattern(entry, pattern, NULL)) {
 
 			if (DEBUG(PATTERN))
 				printf("find_file_hashi_with_pattern: Matched file: %s\n",
 				    entry);
 			
-			if (matched_name)
-				free(matched_name);
 			return strdup(entry);   
 		}
 	}
