@@ -9,4 +9,5 @@ if [ $? -ne 0 ]; then
 fi
 cd test
 cp ../make ./
-./make -r
+clear
+./make -r -d P

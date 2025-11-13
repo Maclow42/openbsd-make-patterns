@@ -47,7 +47,7 @@ RunTestSuite()
 
         # Run make and check output
         $MAKE_BINARY clean > /dev/null
-        $MAKE_BINARY -r > /dev/null 2>&1
+        $MAKE_BINARY > /dev/null 2>&1
 
         # if last 4 characters of make test output are [OK]
         if [ "$($MAKE_BINARY test | tail -c 5)" = "[OK]" ]
