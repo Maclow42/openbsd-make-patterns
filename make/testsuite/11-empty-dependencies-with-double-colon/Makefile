@@ -23,3 +23,4 @@ test:
 
 clean:
 	@rm -f `ls | grep -v Makefile`
+
