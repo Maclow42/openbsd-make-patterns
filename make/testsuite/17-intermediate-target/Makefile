@@ -1,28 +1,25 @@
-# 20-intermediate-target
+# 19-intermediate-target
 # Test .INTERMEDIATE special target to delete intermediate files
+# INTERMEDIATE doest not understand pattern rules
 
 # ========== TEST RULES ==========
 all: file.out
 
-.INTERMEDIATE: file.tmp
+.INTERMEDIATE: file.in
 
-%.out: %.tmp
-	@echo "Test passed." > $@
-
-%.tmp: %.in
-	@echo "temp" > $@
+%.out: %.in
+	@cat file.in > $@
 
 # ========== INPUT FILES ==========
 file.in:
-	@echo "input" > $@
+	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
 .PHONY: test
 
 test:
-	@$(MAKE) -s all > /dev/null 2>&1; \
-	if [ -f file.out ] && grep -q "Test passed." file.out; then \
-		if [ ! -f file.tmp ]; then \
+	@if [ -f file.out ] && grep -q "Test passed." file.out; then \
+		if [ ! -f file.in ]; then \
 			echo "[OK]"; \
 			exit 0; \
 		fi; \

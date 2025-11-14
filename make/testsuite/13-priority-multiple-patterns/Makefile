@@ -1,22 +1,20 @@
 # 13-priority-multiple-patterns
-# Test that more specific pattern has priority
+# Test priority when multiple pattern rules match
+# GNU Make: last rule wins
+# OpenBSD Make: first rule wins
 
 # ========== TEST RULES ==========
-all: file.special.out
+all: file.out
 
-%.out: file.in
-	@echo "generic" > $@
+%.out:
+	@echo "First rule" > $@
 
-%.special.out: file.in
-	@echo "Test passed." > $@
-
-# ========== INPUT FILES ==========
-file.in:
-	@echo "input" > $@
+%.out:
+	@echo "Second rule" > $@
 
 # ========== VALIDATION RULES ==========
 test:
-	@if [ -f file.special.out ] && grep -q "Test passed." file.special.out; then \
+	@if [ -f file.out ] && grep -q "First rule" file.out; then \
 		echo "[OK]"; \
 		exit 0; \
 	fi; \

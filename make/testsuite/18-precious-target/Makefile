@@ -1,4 +1,4 @@
-# 32-terminal-rule
+# 31-terminal-rule
 # Test .PRECIOUS to prevent deletion of intermediate files
 
 # ========== TEST RULES ==========
@@ -7,14 +7,14 @@ all: file.out
 .PRECIOUS: %.tmp
 
 %.out: %.tmp
-	@echo "Test passed." > $@
+	@cp $? $@
 
 %.tmp: %.in
-	@echo "temp" > $@
+	@cat $? > $@
 
 # ========== INPUT FILES ==========
 file.in:
-	@echo "input" > $@
+	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
 test:
@@ -22,7 +22,7 @@ test:
 	if [ -f file.out ] && grep -q "Test passed." file.out; then \
 		ok=`expr $$ok + 1`; \
 	fi; \
-	if [ -f file.tmp ] && grep -q "temp" file.tmp; then \
+	if [ -f file.tmp ] && grep -q "Test passed." file.tmp; then \
 		ok=`expr $$ok + 1`; \
 	fi; \
 	if [ $$ok -eq 2 ]; then \

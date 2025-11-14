@@ -1,16 +1,15 @@
-# 26-empty-recipe
-# Test pattern rule with empty recipe
+# 28-pattern-specific-variables
+# Test pattern-specific variables
 
 # ========== TEST RULES ==========
 all: file.out
 
+%.out: FLAGS = ok
 %.out: %.in
-	@
+	@if [ "$(FLAGS)" = "ok" ]; then cat file.in > file.out; else echo "failed" > $@; fi
 
+# ========== INPUT FILES ==========
 file.in:
-	@echo "input" > $@
-
-file.out: file.in
 	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========

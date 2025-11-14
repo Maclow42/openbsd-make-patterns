@@ -1,18 +1,13 @@
-# 21-order-only-prerequisites
-# Test order-only prerequisites in pattern rules
+# 21-vpath-pattern
+# Test VPATH with pattern rules
 
 # ========== TEST RULES ==========
 all: file.out
 
-%.out: %.in | dir_marker
-	@echo "Test passed." > $@
+VPATH = src
 
-%.in:
-	@echo "input" > $@
-
-dir_marker:
-	@mkdir -p build
-	@touch dir_marker
+%.out: %.in
+	@cat $? > $@
 
 # ========== VALIDATION RULES ==========
 test:
@@ -20,7 +15,7 @@ test:
 	if [ -f file.out ] && grep -q "Test passed." file.out; then \
 		ok=`expr $$ok + 1`; \
 	fi; \
-	if [ -f dir_marker ]; then \
+	if [ -f src/file.in ]; then \
 		ok=`expr $$ok + 1`; \
 	fi; \
 	if [ $$ok -eq 2 ]; then \
@@ -31,4 +26,4 @@ test:
 	exit 1
 
 clean:
-	@rm -rf `ls | grep -v Makefile`
+	@rm -rf `ls | grep -vE "(Makefile|src)"`

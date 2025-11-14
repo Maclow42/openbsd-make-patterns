@@ -5,19 +5,19 @@
 all: file.out file.tmp
 
 %.out: %.tmp
-	@echo "Test passed." > $@
+	@cat $? > $@
 
 %.tmp: %.in
-	@echo "temp" > $@
+	@cat $? > $@
 
 # ========== INPUT FILES ==========
 file.in:
-	@echo "input" > $@
+	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
 test: all
 	@ok=0; \
-	if [ -f file.tmp ] && grep -q "temp" file.tmp; then \
+	if [ -f file.tmp ] && grep -q "Test passed." file.tmp; then \
 		ok=`expr $$ok + 1`; \
 	fi; \
 	if [ -f file.out ] && grep -q "Test passed." file.out; then \

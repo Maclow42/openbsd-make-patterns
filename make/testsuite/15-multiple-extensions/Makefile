@@ -1,35 +1,22 @@
-# 16-multiple-extensions
-# Test pattern rules with multiple file extensions
+# 15-multiple-extensions
+# Test pattern rules with multiple extensions (make chooses based on existence)
 
 # ========== TEST RULES ==========
-all: file1.out file2.out
+all: file.o
 
-file1.out: file.tmp1
-	@echo "Test passed." > $@
+%.o: %.c
+	@echo "Compiled from: file.c" > file.o
 
-file2.out: file.tmp2
-	@echo "Test passed." > $@
-
-%.tmp1: %.in
-	@echo "temp" > $@
-
-%.tmp2: %.in
-	@echo "temp" > $@
+%.o: %.cpp
+	@echo "Compiled from: file.cpp" > file.o
 
 # ========== INPUT FILES ==========
-file.in:
-	@echo "input" > $@
+file.c:
+	@echo "/* C source */" > $@
 
 # ========== VALIDATION RULES ==========
 test:
-	@ok=0; \
-	if [ -f file1.out ] && grep -q "Test passed." file1.out; then \
-		ok=`expr $$ok + 1`; \
-	fi; \
-	if [ -f file2.out ] && grep -q "Test passed." file2.out; then \
-		ok=`expr $$ok + 1`; \
-	fi; \
-	if [ $$ok -eq 2 ]; then \
+	@if [ -f file.o ] && grep -q "Compiled from: file.c" file.o; then \
 		echo "[OK]"; \
 		exit 0; \
 	fi; \

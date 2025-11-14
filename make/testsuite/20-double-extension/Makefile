@@ -1,4 +1,4 @@
-# 23-double-extension
+# 22-double-extension
 # Test pattern rules with double extensions like .tar.gz
 # Subtility: Pattern should correctly handle multiple dots in filename
 
@@ -6,15 +6,15 @@
 all: file.tar.gz
 
 %.tar.gz: %.tar
-	@cp $< $@
+	@cp $? $@
 	@echo " compressed" >> $@
 
-%.tar: %.txt
-	@cp $< $@
+%.tar: %.in
+	@cp $? $@
 	@echo " archived" >> $@
 
 # ========== INPUT FILES ==========
-file.txt:
+file.in:
 	@echo "Test passed" > $@
 
 # ========== VALIDATION RULES ==========

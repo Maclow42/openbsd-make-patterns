@@ -1,20 +1,22 @@
-# 24-static-pattern-rule
-# Test static pattern rules
+# 27-match-subst-reference
+# Test pattern rule with substitution references
 
 # ========== TEST RULES ==========
-OUTPUTS = file1.out file2.out
+INPUTS = file1.in file2.in
+OUTPUTS = $(INPUTS:.in=.out)
 
-all: $(OUTPUTS)
+.PHONY: all result
 
-$(OUTPUTS): %.out: %.in
+all: result
+
+result: $(OUTPUTS)
+	@touch result
+
+%.out: %.in
+	@cat $? > $@
+
+%.in:
 	@echo "Test passed." > $@
-
-# ========== INPUT FILES ==========
-file1.in:
-	@echo "input" > $@
-
-file2.in:
-	@echo "input" > $@
 
 # ========== VALIDATION RULES ==========
 test:

@@ -5,14 +5,14 @@
 all: file1.out file2.out
 
 %.out: %.in
-	@echo "Test passed." > $@
+	@cat $? > $@
 
 # ========== INPUT FILES ==========
 file1.in:
-	@echo "input" > $@
+	@echo "Test passed." > $@
 
 file2.in:
-	@echo "input" > $@
+	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
 test:

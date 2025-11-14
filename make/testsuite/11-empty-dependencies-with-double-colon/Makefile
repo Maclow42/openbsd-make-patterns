@@ -10,6 +10,8 @@ file.out:
 	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
+.PHONY: clean test
+
 test:
 	@if [ -f all ]; then \
 		if grep -q "Test passed." all 2>/dev/null; then \

@@ -1,21 +1,19 @@
 # 12-dir-as-pattern
-# Test pattern rule with directory in pattern
+# Test pattern with % in directory path
 
 # ========== TEST RULES ==========
-all: out/file.out
+all: file.out
 
-out/%.out: in/%.in
-	@mkdir -p out
+%.out: ./src/tmp/%.tmp
+	@cat src/tmp/file.tmp > $@
+
+%.tmp:
+	@mkdir -p src/tmp
 	@echo "Test passed." > $@
-
-# ========== INPUT FILES ==========
-in/file.in:
-	@mkdir -p in
-	@echo "input" > $@
 
 # ========== VALIDATION RULES ==========
 test:
-	@if [ -f out/file.out ] && grep -q "Test passed." out/file.out; then \
+	@if [ -f file.out ] && grep -q "Test passed." file.out; then \
 		echo "[OK]"; \
 		exit 0; \
 	fi; \

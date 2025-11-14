@@ -1,5 +1,5 @@
 # 01-basic-pattern
-# Test basic pattern rule: %.out: (no prerequisites)
+# Test pattern rule with %.out:
 
 # ========== TEST RULES ==========
 all: file.out

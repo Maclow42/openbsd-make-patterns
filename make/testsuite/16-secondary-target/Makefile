@@ -1,18 +1,21 @@
-# 22-vpath-pattern
-# Test VPATH with pattern rules
+# 18-secondary-target
+# Test .SECONDARY special target to preserve intermediate files
+# SECONDARY doest not understand pattern rules
 
 # ========== TEST RULES ==========
 all: file.out
 
-VPATH = src
+.SECONDARY: file.tmp
 
-%.out: %.in
-	@echo "Test passed." > $@
+%.out: %.tmp
+	@cat $? > $@
+
+%.tmp: %.in
+	@cat $? > $@
 
 # ========== INPUT FILES ==========
-src/file.in:
-	@mkdir -p src
-	@echo "input" > $@
+file.in:
+	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
 test:
@@ -20,7 +23,7 @@ test:
 	if [ -f file.out ] && grep -q "Test passed." file.out; then \
 		ok=`expr $$ok + 1`; \
 	fi; \
-	if [ -f src/file.in ]; then \
+	if [ -f file.tmp ] && grep -q "Test passed." file.tmp; then \
 		ok=`expr $$ok + 1`; \
 	fi; \
 	if [ $$ok -eq 2 ]; then \
@@ -31,4 +34,4 @@ test:
 	exit 1
 
 clean:
-	@rm -rf `ls | grep -v Makefile`
+	@rm -f `ls | grep -v Makefile`

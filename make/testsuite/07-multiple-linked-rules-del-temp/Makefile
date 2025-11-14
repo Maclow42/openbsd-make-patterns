@@ -7,20 +7,20 @@ all: file.out
 .INTERMEDIATE: file.tmp
 
 %.out: %.tmp
-	@echo "Test passed." > $@
+	@cat $? > $@
 
 %.tmp: %.in
-	@echo "temp" > $@
+	@cat $? > $@
 
 # ========== INPUT FILES ==========
 file.in:
-	@echo "input" > $@
+	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
 .PHONY: test
 
 test:
-	if [ -f file.out ] && grep -q "Test passed." file.out; then \
+	@if [ -f file.out ] && grep -q "Test passed." file.out; then \
 		if [ ! -f file.tmp ]; then \
 			echo "[OK]"; \
 			exit 0; \
