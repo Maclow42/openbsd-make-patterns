@@ -1,7 +1,10 @@
-/*	$OpenBSD: init.c,v 1.10 2023/09/04 11:35:11 espie Exp $ */
+/*	$OpenBSD$ */
 
 /*
- * Copyright (c) 2001 Marc Espie.
+ * Copyright (c) 2025 Thibault Colcomb <thibault.colcomb@epita.fr>
+ * Copyright (c) 2025 Marc Espie <espie@openbsd.org>
+ *
+ * Support for gnu-make style % patterns
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,36 +27,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdio.h>
-#include "defines.h"
-#include "init.h"
-#include "timestamp.h"
-#include "stats.h"
-#include "dir.h"
-#include "parse.h"
-#include "var.h"
-#include "arch.h"
-#include "targ.h"
-#include "patterns.h"
-#include "suff.h"
-#include "job.h"
-#include "cmd_exec.h"
 
-void
-Init(void)
-{
-	Sigset_Init();
-	CmdExec_Init();
-	Init_Timestamp();
-	Init_Stats();
-	Pattern_Init();
-	Targ_Init();
-	Dir_Init();		/* Initialize directory structures so -I flags
-				 * can be processed correctly */
-	Parse_Init();		/* Need to initialize the paths of #include
-				 * directories */
-	Var_Init();		/* As well as the lists of variables for
-				 * parsing arguments */
-	Arch_Init();
-	Suff_Init();
-}
+extern void may_register_as_pattern(GNode *);
+extern void Pattern_Init(void);
+extern char *find_file_hash_with_pattern(struct ohash *, const char *);
+extern bool match_pattern(const char *, const char *, char**);
+extern GNode *Targ_FindPatternMatchingNode(const GNode *, char** );
+extern void Targ_BuildFromPattern(GNode *, GNode *, char *, size_t);
+extern void Targ_RemoveAllTmpChildren(GNode *);
+extern bool expand_children_from_pattern(GNode *);

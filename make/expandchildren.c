@@ -54,6 +54,7 @@
 #include "lst.h"
 #include "gnode.h"
 #include "suff.h"
+#include "patterns.h"
 
 static void ExpandChildren(LstNode, GNode *);
 static void ExpandVarChildren(LstNode, GNode *, GNode *);
@@ -241,52 +242,11 @@ void
 expand_children_from(GNode *parent, LstNode from)
 {
 	LstNode np, ln;
-	GNode *matching;
 
 	/* If no children at the beginning, try to find some in pattern rules. */
-	if (parent->children_left == 0) {
-		char *expanded = NULL;
-
-		if (DEBUG(PATTERN)) {
-			printf("\t\t => No children found for \"%s\"\n",
-			    parent->name);
-			printf("\t\t => Searching for matching pattern targets...\n");
-		}
-
-		matching = Targ_FindPatternMatchingNode(parent, &expanded);
-		if (matching != NULL) {
-			if (expanded == NULL) {
-				/* Memory allocation failed in match_pattern. */
-				fprintf(stderr, "expand_children_from: out of memory\n");
-				return;
-			}
-			
-			if (DEBUG(PATTERN))
-				printf("\t\t => Matching pattern target found: %s\n",
-				    matching->name);
-
-			/* Replace all % pattern of matching node with parent
-			 * node and add it to the parent children list. */
-			Targ_BuildFromPattern(parent, matching, expanded,
-			    strlen(expanded));
-			
-			free(expanded);
-			
-			if (DEBUG(PATTERN))
-				printf("All children of %s have been built.\n\n",
-				    parent->name);
-
+	if (parent->children_left == 0)
+		if (expand_children_from_pattern(parent))
 			return;
-		}
-
-		if (DEBUG(PATTERN))
-			printf("\tNo pattern matching found for %s\n",
-			    parent->name);
-
-		/* If no children found, the node should exist. */
-		parent->is_tmp = false;
-	}
-
 	if (DEBUG(PATTERN))
 		printf("Expanding children of %s\n", parent->name);
 

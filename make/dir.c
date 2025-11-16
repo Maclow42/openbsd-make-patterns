@@ -81,6 +81,7 @@
 #include "error.h"
 #include "str.h"
 #include "timestamp.h"
+#include "patterns.h"
 
 
 /*	A search path consists of a Lst of PathEntry structures. A Path
@@ -221,9 +222,6 @@ static void add_file(struct PathEntry *, const char *);
 static char *find_file_hashi(struct PathEntry *, const char *, const char *,
     uint32_t);
 
-static char *find_file_hashi_with_pattern(struct PathEntry *p,
-	const char *pattern);
-
 /* stamp = find_stampi(name, end): look for (name, end) in the global
  *	cache. */
 static struct file_stamp *find_stampi(const char *, const char *);
@@ -291,41 +289,16 @@ find_file_hashi(struct PathEntry *p, const char *file, const char *efile,
     uint32_t hv)
 {
 	struct ohash 	*h = &p->files;
-	char *result;
 
 	if (strchr(file, '%') != NULL) {
-		result = find_file_hashi_with_pattern(p, file);
+		char *result;
 
-		if (result != NULL) {
-			if (DEBUG(PATTERN))
-				printf("find_file_hashi: Matched file: %s\n",
-				    result);
+		result = find_file_hash_with_pattern(h, file);
+
+		if (result != NULL)
 			return result;
-		}
 	}
-
 	return ohash_find(h, ohash_lookup_interval(h, file, efile, hv));
-}
-
-static char *
-find_file_hashi_with_pattern(struct PathEntry *p, const char *pattern)
-{
-	unsigned int search;
-	const char *entry;
-
-	for (entry = ohash_first(&p->files, &search); entry != NULL;
-	    entry = ohash_next(&p->files, &search)) {
-		if (match_pattern(entry, pattern, NULL)) {
-
-			if (DEBUG(PATTERN))
-				printf("find_file_hashi_with_pattern: Matched file: %s\n",
-				    entry);
-			
-			return strdup(entry);   
-		}
-	}
-
-	return NULL;
 }
 
 static bool

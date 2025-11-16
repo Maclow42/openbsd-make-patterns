@@ -152,11 +152,9 @@ struct GNode_ {
     char *basename;	/* pointer to name stripped of path */
     GNode *next;
 
+    const GNode *expanded_from;
     bool in_cycle;	/* cycle detection */
-
-	bool is_pattern; /* true if the target is a pattern target */
-	const GNode *expanded_from;
-	bool is_tmp; /* true if the target is a temporary target */
+    bool is_tmp; 	/* true if the target is a temporary target */
 
     char name[1];	/* The target's name */
 };
