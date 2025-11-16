@@ -1,11 +1,10 @@
 # GNU Make Pattern Rules Test Suite
 # Global Makefile to run all tests
 
-TEST_DIRS != find . -mindepth 2 -type f -name Makefile -print \
-              | sed 's|^\./||' | sed 's|/Makefile$$||' | sort -u
-
 PASSED = 0
 FAILED = 0
+
+TEST_DIRS = find . ! -path ./Makefile -name Makefile -exec dirname {} \;|sort -u
 
 .PHONY: all test clean $(TEST_DIRS)
 
@@ -13,33 +12,31 @@ all: test
 
 test: clean
 	@echo "=== Running Pattern Rules Test Suite ==="
-	@sh -c ' \
-	failed=0; passed=0; \
-	for dir in $(TEST_DIRS); do \
+	@set +e; failed=0; passed=0; \
+	$(TEST_DIRS)|{ while read dir; do \
 		printf "Testing $$dir ... "; \
 		$(MAKE) -s -C $$dir clean > /dev/null 2>&1; \
 		$(MAKE) -s -C $$dir all > /dev/null 2>&1; \
-		output=`$(MAKE) -s -C $$dir test 2>&1`; \
-		if echo "$$output" | grep -q "^\[OK\]$$"; then \
+		case `$(MAKE) -s -C $$dir test 2>&1` in \
+		*OK*) \
 			echo "[OK]"; \
-			passed=`expr $$passed + 1`; \
-		else \
+			passed=$$(( $$passed + 1));; \
+		*) \
 			echo "[KO]"; \
-			failed=`expr $$failed + 1`; \
-		fi; \
-	done; \
-	echo ""; \
-	echo "=== Test Summary ==="; \
-	echo "Passed: $$passed"; \
-	echo "Failed: $$failed"; \
-	total=`expr $$passed + $$failed`; \
-	echo "Total:  $$total"; \
-	if [ $$failed -ne 0 ]; then \
-		exit 1; \
-	fi'
+			failed=$$(( $$failed + 1));; \
+		esac; \
+	    done; \
+	    echo ""; \
+	    echo "=== Test Summary ==="; \
+	    echo "Passed: $$passed"; \
+	    echo "Failed: $$failed"; \
+	    total=$$(( $$passed + $$failed )); \
+	    echo "Total:  $$total"; \
+	    case $$failed in 0) ;; *) exit 1;; esac; \
+	}
 
 clean:
-	@for dir in $(TEST_DIRS); do \
+	@$(TEST_DIRS)|while read dir; do \
 		$(MAKE) -C $$dir clean > /dev/null 2>&1 || true; \
 	done
 	@echo "All test directories cleaned"
