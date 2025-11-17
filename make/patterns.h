@@ -1,7 +1,7 @@
 /*	$OpenBSD$ */
 
 /*
- * Copyright (c) 2025 Thibault Colcomb <thibault.colcomb@epita.fr>
+ * Copyright (c) 2025 Thibault Colcomb <thibault.colcomb@hotmail.fr>
  * Copyright (c) 2025 Marc Espie <espie@openbsd.org>
  *
  * Support for gnu-make style % patterns
@@ -28,11 +28,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-extern void may_register_as_pattern(GNode *);
 extern void Pattern_Init(void);
+extern void may_register_as_pattern(GNode *);
 extern char *find_file_hash_with_pattern(struct ohash *, const char *);
-extern bool match_pattern(const char *, const char *, char**);
-extern GNode *Targ_FindPatternMatchingNode(const GNode *, char** );
+extern bool match_pattern(const char *, const char *, char **);
+extern GNode *Targ_FindPatternMatchingNode(const GNode *, char **);
 extern void Targ_BuildFromPattern(GNode *, GNode *, char *, size_t);
-extern void Targ_RemoveAllTmpChildren(GNode *);
+extern void Targ_RemoveAllTmpTargets(void);
 extern bool expand_children_from_pattern(GNode *);

@@ -607,8 +607,6 @@ run_gnode(GNode *gn)
 	Job_Make(gn);
 	loop_handle_running_jobs();
 
-	Targ_RemoveAllTmpChildren(gn);
-
 	return gn->built_status;
 }
 

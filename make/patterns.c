@@ -66,7 +66,7 @@ static void expand_pattern_from_char(const char *, size_t ,
 	const char *, size_t, char**, char**);
 
 static void
-Targ_RemoveTmpTarg(void *, void *unused);
+Targ_RemoveTmpTarg(void *, void *unused UNUSED);
 
 void
 may_register_as_pattern(GNode *gn)
@@ -209,8 +209,6 @@ Targ_CreateNodeFromPattern(GNode *pattern_gn, const char *expanded_name,
 	new_gn->expanded_from = pattern_gn;
 	new_gn->is_tmp = true;
 
-	/* XXX Should not exist ? */
-
 	/* Search its place in ohash and insert it. */
 	hv = ohash_interval(expanded_name, &expendanded_ename);
 	h = targets_hash();
@@ -239,13 +237,22 @@ Targ_BuildChildFromPatternParent(GNode *parent_gn, GNode *child,
 	new_child = Targ_FindNode(new_name, TARG_NOCREATE);
 
 	if (new_child == NULL) {
-	/* Create new node from pattern. */
+		/* Create new node from pattern. */
 		new_child = Targ_CreateNodeFromPattern(child, new_name,
 		    new_ename);
 
-	/* Recursively build and link all children from the pattern. */
-	Targ_BuildFromPattern(new_child, child, pattern_value,
-	    pattern_value_len);
+		/* Recursively build and link all children from the pattern. */
+		Targ_BuildFromPattern(new_child, child, pattern_value,
+		pattern_value_len);
+
+		/* If no children and no commands, then this is a final 
+		   target. A final target is not temporary so we need to
+		   prevent its deletion.
+		   Usefull case: cf test 14-patterned-file */
+		if (Lst_IsEmpty(&new_child->children) &&
+			Lst_IsEmpty(&new_child->commands)) {
+			new_child->is_tmp = false;
+		}
 	}
 
 	free(new_name);
@@ -446,14 +453,24 @@ Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 }
 
 void
-Targ_RemoveAllTmpChildren(GNode *gn)
+Targ_RemoveAllTmpTargets(void)
 {
+	GNode *gn;
+	unsigned int i;
+	struct ohash *h;
+
 	/* Tmp children are only created by pattern rules. */
 	if (Array_IsEmpty(&patterns))
 		return;
-	Lst_ForEach(&gn->children, Targ_RemoveTmpTarg, NULL);
-}
+	
+	if (DEBUG(PATTERN))
+		printf("Removing all temporary targets...\n");
 
+	h = targets_hash();
+	for (gn = ohash_first(h, &i); gn != NULL; gn = ohash_next(h, &i)) {
+		Lst_ForEach(&gn->children, Targ_RemoveTmpTarg, NULL);
+	}
+}
 
 bool
 expand_children_from_pattern(GNode *gn)
@@ -468,6 +485,7 @@ expand_children_from_pattern(GNode *gn)
 
 	matching = Targ_FindPatternMatchingNode(gn, &expanded);
 	if (matching != NULL) {
+		gn->is_tmp = false;
 		if (DEBUG(PATTERN))
 			printf("\t\t => Matching pattern target found: %s\n",
 			    matching->name);
@@ -487,9 +505,6 @@ expand_children_from_pattern(GNode *gn)
 
 	if (DEBUG(PATTERN))
 		printf("\tNo pattern matching found for %s\n", gn->name);
-
-	/* If no children found, the node should exist. */
-	gn->is_tmp = false;
 
 	return false;
 }
