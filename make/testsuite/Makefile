@@ -1,4 +1,3 @@
-# GNU Make Pattern Rules Test Suite
 # Global Makefile to run all tests
 
 PASSED = 0

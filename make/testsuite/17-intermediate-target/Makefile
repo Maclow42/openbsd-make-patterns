@@ -1,4 +1,4 @@
-# 19-intermediate-target
+# 17-intermediate-target
 # Test .INTERMEDIATE special target to delete intermediate files
 # INTERMEDIATE doest not understand pattern rules
 

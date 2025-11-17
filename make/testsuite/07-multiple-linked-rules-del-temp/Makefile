@@ -4,8 +4,6 @@
 # ========== TEST RULES ==========
 all: file.out
 
-.INTERMEDIATE: file.tmp
-
 %.out: %.tmp
 	@cat $? > $@
 

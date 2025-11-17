@@ -1,15 +1,19 @@
-# 31-terminal-rule
-# Test .PRECIOUS to prevent deletion of intermediate files
+# 18-precious-target
+# Test .PRECIOUS to prevent deletion of
+# intermediate files when compilation failed
 
 # ========== TEST RULES ==========
 all: file.out
 
-.PRECIOUS: %.tmp
+.PRECIOUS: file2.tmp
 
-%.out: %.tmp
-	@cp $? $@
+%.out: %1.tmp
+	@failing_command
 
-%.tmp: %.in
+%1.tmp: %2.tmp
+	@cat $? > $@
+
+%2.tmp: %.in
 	@cat $? > $@
 
 # ========== INPUT FILES ==========
@@ -17,12 +21,12 @@ file.in:
 	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
-test:
+test: all
 	@ok=0; \
-	if [ -f file.out ] && grep -q "Test passed." file.out; then \
+	if [ ! -f file.out ] && [ ! -f file1.tmp ]; then \
 		ok=`expr $$ok + 1`; \
 	fi; \
-	if [ -f file.tmp ] && grep -q "Test passed." file.tmp; then \
+	if [ -f file2.tmp ] && grep -q "Test passed." file2.tmp; then \
 		ok=`expr $$ok + 1`; \
 	fi; \
 	if [ $$ok -eq 2 ]; then \

@@ -1,4 +1,4 @@
-# 27-match-subst-reference
+# 23-match-subst-reference
 # Test pattern rule with substitution references
 
 # ========== TEST RULES ==========

@@ -1,4 +1,4 @@
-# 21-vpath-pattern
+# 19-vpath-pattern
 # Test VPATH with pattern rules
 
 # ========== TEST RULES ==========

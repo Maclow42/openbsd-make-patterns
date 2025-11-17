@@ -1,4 +1,4 @@
-# 22-double-extension
+# 20-double-extension
 # Test pattern rules with double extensions like .tar.gz
 # Subtility: Pattern should correctly handle multiple dots in filename
 

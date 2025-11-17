@@ -1,4 +1,4 @@
-# 28-pattern-specific-variables
+# 24-pattern-specific-variables
 # Test pattern-specific variables
 
 # ========== TEST RULES ==========

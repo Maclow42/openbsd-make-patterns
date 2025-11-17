@@ -1,4 +1,4 @@
-# 18-secondary-target
+# 16-secondary-target
 # Test .SECONDARY special target to preserve intermediate files
 # SECONDARY doest not understand pattern rules
 

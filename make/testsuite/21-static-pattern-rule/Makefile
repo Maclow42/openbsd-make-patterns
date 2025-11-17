@@ -1,4 +1,4 @@
-# 23-static-pattern-rule
+# 21-static-pattern-rule
 # Test static pattern rules
 
 # ========== TEST RULES ==========
@@ -6,7 +6,7 @@ OUTPUTS = file1.out file2.out
 
 all: $(OUTPUTS)
 
-$(OUTPUTS): %.out: %.in
+%.out: %.in
 	@cat $? > $@
 
 # ========== INPUT FILES ==========

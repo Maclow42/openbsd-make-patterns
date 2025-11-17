@@ -1,4 +1,4 @@
-# 24-pattern-different-positions
+# 22-pattern-different-positions
 # Test pattern % in different positions
 
 # ========== TEST RULES ==========
