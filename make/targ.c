@@ -175,6 +175,7 @@ Targ_mk_node(const char *name, const char *ename,
 	gn->basename = NULL;
 	gn->sibling = gn;
 	gn->groupling = NULL;
+	gn->expanded_from = NULL;
 	may_register_as_pattern(gn);
 
 #ifdef STATS_GN_CREATION

@@ -75,6 +75,7 @@ may_register_as_pattern(GNode *gn)
 		gn->is_tmp = false;
 		return;
 	}
+	gn->is_tmp = true;
 	Array_AtEnd(&patterns, gn);
 }
 
