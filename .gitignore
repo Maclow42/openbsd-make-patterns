@@ -1,6 +1,11 @@
 *.d
 *.o
 *.vscode
+*.in
+*.out
+*.tmp
+*.tar.gz
+*.diff
 make$
 make.core
 name
