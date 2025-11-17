@@ -52,6 +52,22 @@
 
 static struct growableArray patterns;
 
+static GNode *
+Targ_CreateNodeFromPattern(GNode *, const char *, const char *);
+
+static void
+Targ_BuildChildFromPatternParent(GNode *, GNode *, char *, size_t);
+
+static void 
+expand_from_char(const char *, size_t,  const char *,
+	size_t, const char *, size_t, char**, char**);
+
+static void expand_pattern_from_char(const char *, size_t ,
+	const char *, size_t, char**, char**);
+
+static void
+Targ_RemoveTmpTarg(void *, void *unused);
+
 void
 may_register_as_pattern(GNode *gn)
 {
@@ -61,20 +77,6 @@ may_register_as_pattern(GNode *gn)
 	}
 	Array_AtEnd(&patterns, gn);
 }
-
-static GNode *
-Targ_CreateNodeFromPattern(GNode *, char *, size_t);
-
-static void
-Targ_BuildChildFromPatternParent(GNode *, GNode *, char *, size_t);
-
-static char *expand_from_char(const char *, size_t,  const char *,
-	size_t, const char *, size_t);
-
-static char *expand_pattern_from_char(const char *, size_t ,
-	const char *, size_t);
-
-static void Targ_RemoveTmpTarg(void *, void *UNUSED);
 
 void
 Pattern_Init(void)
@@ -107,12 +109,11 @@ find_file_hash_with_pattern(struct ohash *h, const char *pattern)
  * Returns a newly allocated string that must be freed by the caller.
  * Returns NULL on error.
  */
-static char *
+static void
 expand_from_char(const char *src, size_t src_len, const char *to_expand,
-	size_t to_expand_len, const char *pattern_value, size_t pattern_value_len)
+	size_t to_expand_len, const char *pattern_value, size_t pattern_value_len, char** result, char** eresult)
 {
 	const char *expander;
-	char *result;
 	size_t prefix_len;
 	size_t suffix_len;
 	size_t result_len;
@@ -120,32 +121,34 @@ expand_from_char(const char *src, size_t src_len, const char *to_expand,
 	expander = strstr(src, to_expand);
 	if (!expander) {
 		/* No match, return a copy of src */
-		return Str_dupi(src, src + src_len);
+		*result = Str_dupi(src, src + src_len);
+		*eresult = *result + src_len;
+		return;
 	}
 
 	prefix_len = expander - src;
 	suffix_len = src_len - prefix_len - to_expand_len;
 	result_len = prefix_len + pattern_value_len + suffix_len;
 
-	result = emalloc(result_len + 1);
-	memcpy(result, src, prefix_len);
-	memcpy(result + prefix_len, pattern_value, pattern_value_len);
-	memcpy(result + prefix_len + pattern_value_len,
+	*result = emalloc(result_len + 1);
+	memcpy(*result, src, prefix_len);
+	memcpy(*result + prefix_len, pattern_value, pattern_value_len);
+	memcpy(*result + prefix_len + pattern_value_len,
 	    expander + to_expand_len, suffix_len);
-	result[result_len] = '\0';
+	(*result)[result_len] = '\0';
 
-	return result;
+	*eresult = *result + result_len;
 }
 
 /*
  * Expands pattern '%' in src with pattern_value
  */
-char *
+void
 expand_pattern_from_char(const char *src, size_t src_len,
-    const char *pattern_value, size_t pattern_value_len)
+    const char *pattern_value, size_t pattern_value_len, char** result, char** eresult)
 {
-	return expand_from_char(src, src_len, "%", 1,
-	    pattern_value, pattern_value_len);
+	expand_from_char(src, src_len, "%", 1,
+	    pattern_value, pattern_value_len, result, eresult);
 }
 
 static void
@@ -183,42 +186,36 @@ Targ_CopyCommands(GNode *dest, GNode *src)
  *-----------------------------------------------------------------------
  */
 static GNode *
-Targ_CreateNodeFromPattern(GNode *pattern_gn, char *pattern_value,
-    size_t pattern_value_len)
+Targ_CreateNodeFromPattern(GNode *pattern_gn, const char *expanded_name,
+    const char *expendanded_ename)
 {
-	char *new_name;
 	GNode *new_gn;
 	unsigned int slot;
-	const char *ename;
 	uint32_t hv;
 	struct ohash *h;
 
-	if (DEBUG(PATTERN))
-		printf("Building children %s ", pattern_gn->name);
+	if (DEBUG(PATTERN)) {
+		size_t name_size = expendanded_ename - expanded_name + 1;
+		char *string_name = emalloc(name_size);
+		memcpy(string_name, expanded_name, name_size - 1);
+		string_name[name_size - 1] = '\0';
+		printf("Building children %s (new name: %s)\n",
+		    pattern_gn->name, string_name);
+		free(string_name);
+	}
 
-	/* First compute expanded name. */
-	new_name = expand_pattern_from_char(pattern_gn->name,
-	    strlen(pattern_gn->name), pattern_value, pattern_value_len);
-
-	if (DEBUG(PATTERN))
-		printf("(new name: %s)\n", new_name);
-
-	ename = new_name + strlen(new_name);
 	/* Create new GNode with expanded name. */
-	new_gn = Targ_NewGNi(new_name, ename);
-
+	new_gn = Targ_NewGNi(expanded_name, expendanded_ename);
 	new_gn->expanded_from = pattern_gn;
 	new_gn->is_tmp = true;
 
 	/* XXX Should not exist ? */
 
 	/* Search its place in ohash and insert it. */
-	hv = ohash_interval(new_name, &ename);
+	hv = ohash_interval(expanded_name, &expendanded_ename);
 	h = targets_hash();
-	slot = ohash_lookup_interval(h, new_name, ename, hv);
+	slot = ohash_lookup_interval(h, expanded_name, expendanded_ename, hv);
 	ohash_insert(h, slot, new_gn);
-
-	free(new_name);
 
 	/* Copy commands from pattern_gn to new_gn. */
 	Targ_CopyCommands(new_gn, pattern_gn);
@@ -231,14 +228,27 @@ Targ_BuildChildFromPatternParent(GNode *parent_gn, GNode *child,
     char *pattern_value, size_t pattern_value_len)
 {
 	GNode *new_child;
+	char *new_name;
+	char *new_ename;
 
+	/* Compute full name */
+	expand_pattern_from_char(child->name,
+	    strlen(child->name), pattern_value, pattern_value_len, &new_name, &new_ename);
+
+	/* Search a Gnode existing with this name */
+	new_child = Targ_FindNode(new_name, TARG_NOCREATE);
+
+	if (new_child == NULL) {
 	/* Create new node from pattern. */
-	new_child = Targ_CreateNodeFromPattern(child, pattern_value,
-	    pattern_value_len);
+		new_child = Targ_CreateNodeFromPattern(child, new_name,
+		    new_ename);
 
 	/* Recursively build and link all children from the pattern. */
 	Targ_BuildFromPattern(new_child, child, pattern_value,
 	    pattern_value_len);
+	}
+
+	free(new_name);
 
 	/* Link new_child to parent_gn and vice-versa. */
 	Lst_AtEnd(&parent_gn->children, new_child);
@@ -266,7 +276,7 @@ Targ_BuildFromPattern(GNode *parent_gn, GNode *pattern_gn, char *pattern_value,
 	 * matching "lib.a"), which is valid. */
 
 	if (DEBUG(PATTERN))
-		printf("Building children of %s from %s with %%=%.*s\n",
+		printf("Building children of %s from %s with stem %.*s\n",
 		    parent_gn->name, pattern_gn->name,
 		    (int)pattern_value_len, pattern_value);
 
@@ -376,7 +386,6 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, char **expanded)
 	GNode *gn;
 	bool is_parent;
 	char *temp_expanded;
-	LstNode ln;
 	size_t i;
 	/* If no pattern gnode exists  we do not try to search one */
 	if (Array_IsEmpty(&patterns))
@@ -418,8 +427,9 @@ Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 	GNode *gn = child;
 	const char *file;
 
-	if (!gn || !gn->expanded_from || !gn->is_tmp)
+	if (!gn->expanded_from || !gn->is_tmp) {
 		return;
+	}
 
 	if (DEBUG(PATTERN))
 		printf("Targ_RemoveTmpTarg: Removing node %s\n", gn->name);
@@ -480,5 +490,6 @@ expand_children_from_pattern(GNode *gn)
 
 	/* If no children found, the node should exist. */
 	gn->is_tmp = false;
+
 	return false;
 }
