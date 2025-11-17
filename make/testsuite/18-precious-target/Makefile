@@ -21,7 +21,7 @@ file.in:
 	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
-test: all
+test:
 	@ok=0; \
 	if [ ! -f file.out ] && [ ! -f file1.tmp ]; then \
 		ok=`expr $$ok + 1`; \
