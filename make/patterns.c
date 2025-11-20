@@ -58,10 +58,6 @@ Targ_CreateNodeFromPattern(GNode *, const char *, const char *);
 static void
 Targ_BuildChildFromPatternParent(GNode *, GNode *, char *, size_t);
 
-static void 
-expand_from_char(const char *, size_t,  const char *,
-	size_t, const char *, size_t, char**, char**);
-
 static void expand_pattern_from_char(const char *, size_t ,
 	const char *, size_t, char**, char**);
 
@@ -106,50 +102,33 @@ find_file_hash_with_pattern(struct ohash *h, const char *pattern)
 }
 
 /*
- * Expands 'to_expand' in src with pattern_value
- * Returns a newly allocated string that must be freed by the caller.
- * Returns NULL on error.
+ * Expands pattern '%' in src with pattern_value
  */
-static void
-expand_from_char(const char *src, size_t src_len, const char *to_expand,
-	size_t to_expand_len, const char *pattern_value, size_t pattern_value_len, char** result, char** eresult)
+void
+expand_pattern_from_char(const char *src, size_t src_len,
+	const char *pattern_value, size_t pattern_value_len, char **result, char **eresult)
 {
-	const char *expander;
 	size_t prefix_len;
 	size_t suffix_len;
 	size_t result_len;
 
-	expander = strstr(src, to_expand);
-	if (!expander) {
-		/* No match, return a copy of src */
+	const char *percent = strchr(src, '%');
+	if (!percent) {
 		*result = Str_dupi(src, src + src_len);
 		*eresult = *result + src_len;
 		return;
 	}
 
-	prefix_len = expander - src;
-	suffix_len = src_len - prefix_len - to_expand_len;
+	prefix_len = percent - src;
+	suffix_len = src_len - prefix_len - 1;
 	result_len = prefix_len + pattern_value_len + suffix_len;
 
 	*result = emalloc(result_len + 1);
 	memcpy(*result, src, prefix_len);
 	memcpy(*result + prefix_len, pattern_value, pattern_value_len);
-	memcpy(*result + prefix_len + pattern_value_len,
-	    expander + to_expand_len, suffix_len);
+	memcpy(*result + prefix_len + pattern_value_len, percent + 1, suffix_len);
 	(*result)[result_len] = '\0';
-
 	*eresult = *result + result_len;
-}
-
-/*
- * Expands pattern '%' in src with pattern_value
- */
-void
-expand_pattern_from_char(const char *src, size_t src_len,
-    const char *pattern_value, size_t pattern_value_len, char** result, char** eresult)
-{
-	expand_from_char(src, src_len, "%", 1,
-	    pattern_value, pattern_value_len, result, eresult);
 }
 
 static void
