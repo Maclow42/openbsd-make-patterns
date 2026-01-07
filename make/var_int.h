@@ -34,6 +34,7 @@
 #define PREFIX		  "*"	/* Common prefix */
 #define ARCHIVE 	  "!"	/* Archive in "archive(member)" syntax */
 #define MEMBER		  "%"	/* Member in "archive(member)" syntax */
+#define MODIFIEDSRC	  "^"	/* gnu make extension */
 #define LONGTARGET	".TARGET"
 #define LONGOODATE	".OODATE"
 #define LONGALLSRC	".ALLSRC"
@@ -41,17 +42,5 @@
 #define LONGPREFIX	".PREFIX"
 #define LONGARCHIVE	".ARCHIVE"
 #define LONGMEMBER	".MEMBER"
-
-/* System V   extended variables (get directory/file part) */
-#define FTARGET		"@F"
-#define DTARGET		"@D"
-#define FIMPSRC		"<F"
-#define DIMPSRC		"<D"
-#define FPREFIX		"*F"
-#define DPREFIX		"*D"
-#define FARCHIVE	"!F"
-#define DARCHIVE	"!D"
-#define FMEMBER		"%F"
-#define DMEMBER		"%D"
 
 #endif

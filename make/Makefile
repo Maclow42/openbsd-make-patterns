@@ -27,7 +27,7 @@ CLEANFILES+=generate generate.o regress.o check
 CLEANFILES+= varhashconsts.h condhashconsts.h nodehashconsts.h
 
 # may need tweaking if you add variable synonyms or change the hash function
-MAGICVARSLOTS=82
+MAGICVARSLOTS=36
 MAGICCONDSLOTS=65
 
 varhashconsts.h: generate
