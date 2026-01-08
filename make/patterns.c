@@ -276,6 +276,11 @@ Targ_BuildFromPattern(GNode *parent_gn, GNode *pattern_gn, char *pattern_value,
 		    pattern_value, pattern_value_len);
 	}
 
+	/* Set impliedsrc to first child for $< variable support in pattern rules */
+	if (!Lst_IsEmpty(&parent_gn->children)) {
+		parent_gn->impliedsrc = Lst_Datum(Lst_First(&parent_gn->children));
+	}
+
 	/* Copy commands from pattern_gn to parent_gn.
 	 * It works because we are on a node without children (called
 	 * from "expand_children_from").

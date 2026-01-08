@@ -956,6 +956,9 @@ bad_dynamic_variable(int idx)
 	Parse_FillLocation(&origin);
 	switch(idx) {
 	case IMPSRC_INDEX:
+		/* Allow $< in pattern rules (when expanded_from is set) */
+		if (current_node != NULL && current_node->expanded_from != NULL)
+			break;
 		if (origin.fname)
 			Fatal(ERRMSG1  "(%s:%lu)", 
 			    origin.fname, origin.lineno);
