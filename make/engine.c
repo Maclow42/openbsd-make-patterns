@@ -425,7 +425,6 @@ Make_DoAllVar(GNode *gn)
 		Var(OODATE_INDEX, gn) = Buf_Retrieve(&oodate);
 	if (modifiedsrc_count > 1)
 		Var(MODIFIEDSRC_INDEX, gn) = Buf_Retrieve(&modifiedsrc);
-
 	if (gn->impliedsrc)
 		Var(IMPSRC_INDEX, gn) = Var(TARGET_INDEX, gn->impliedsrc);
 }
