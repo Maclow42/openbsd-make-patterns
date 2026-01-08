@@ -81,6 +81,12 @@ Pattern_Init(void)
 	Array_Init(&patterns, 32);
 }
 
+/*
+ * Search for a file in hash table that matches the given pattern.
+ *
+ * It returns an allocated string with matched file name or NULL
+ * if no match found.
+ */
 char *
 find_file_hash_with_pattern(struct ohash *h, const char *pattern)
 {
@@ -167,7 +173,7 @@ Targ_CopyCommands(GNode *dest, GNode *src)
  */
 static GNode *
 Targ_CreateNodeFromPattern(GNode *pattern_gn, const char *expanded_name,
-    const char *expendanded_ename)
+    const char *expanded_ename)
 {
 	GNode *new_gn;
 	unsigned int slot;
@@ -175,7 +181,7 @@ Targ_CreateNodeFromPattern(GNode *pattern_gn, const char *expanded_name,
 	struct ohash *h;
 
 	if (DEBUG(PATTERN)) {
-		size_t name_size = expendanded_ename - expanded_name + 1;
+		size_t name_size = expanded_ename - expanded_name + 1;
 		char *string_name = emalloc(name_size);
 		memcpy(string_name, expanded_name, name_size - 1);
 		string_name[name_size - 1] = '\0';
@@ -185,14 +191,14 @@ Targ_CreateNodeFromPattern(GNode *pattern_gn, const char *expanded_name,
 	}
 
 	/* Create new GNode with expanded name. */
-	new_gn = Targ_NewGNi(expanded_name, expendanded_ename);
+	new_gn = Targ_NewGNi(expanded_name, expanded_ename);
 	new_gn->expanded_from = pattern_gn;
 	new_gn->is_tmp = true;
 
 	/* Search its place in ohash and insert it. */
-	hv = ohash_interval(expanded_name, &expendanded_ename);
+	hv = ohash_interval(expanded_name, &expanded_ename);
 	h = targets_hash();
-	slot = ohash_lookup_interval(h, expanded_name, expendanded_ename, hv);
+	slot = ohash_lookup_interval(h, expanded_name, expanded_ename, hv);
 	ohash_insert(h, slot, new_gn);
 
 	/* Copy commands from pattern_gn to new_gn. */
@@ -228,7 +234,7 @@ Targ_BuildChildFromPatternParent(GNode *parent_gn, GNode *child,
 		/* If no children and no commands, then this is a final 
 		   target. A final target is not temporary so we need to
 		   prevent its deletion.
-		   Usefull case: cf test 14-patterned-file */
+		   Useful case: cf test 14-patterned-file */
 		if (Lst_IsEmpty(&new_child->children) &&
 			Lst_IsEmpty(&new_child->commands)) {
 			new_child->is_tmp = false;
@@ -352,9 +358,8 @@ match_pattern(const char *name, const char *pattern, char **expanded)
 		 * "lib.a", which is valid and should return empty string. */
 		*expanded = strndup(name + prefix_len, stem_len);
 		if (*expanded == NULL) {
-			/* Memory allocation failed. */
-			fprintf(stderr, "match_pattern: out of memory\n");
-			return false;
+			/* Memory allocation failed - critical error. */
+			Fatal("match_pattern: out of memory");
 		}
 	}
 
