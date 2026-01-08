@@ -332,16 +332,17 @@ Make_DoAllVar(GNode *gn)
 {
 	GNode *child;
 	LstNode ln;
-	BUFFER allsrc, oodate;
+	BUFFER allsrc, oodate, modifiedsrc;
 	char *target;
 	bool do_oodate;
-	int oodate_count, allsrc_count = 0;
+	int oodate_count, allsrc_count, modifiedsrc_count = 0;
 
 	oodate_count = 0;
 	allsrc_count = 0;
 
 	Var(OODATE_INDEX, gn) = "";
 	Var(ALLSRC_INDEX, gn) = "";
+	Var(MODIFIEDSRC_INDEX, gn) = "";
 
 	for (ln = Lst_First(&gn->children); ln != NULL; ln = Lst_Adv(ln)) {
 		child = Lst_Datum(ln);
@@ -399,12 +400,31 @@ Make_DoAllVar(GNode *gn)
 			Buf_AddSpace(&allsrc);
 			Buf_AddString(&allsrc, target);
 		}
+		
+		/* MODIFIEDSRC : all prerequisites, excluding .USE nodes
+		 * This matches GNU make's $^ behavior */
+		if ((child->type & OP_USE) == 0) {
+			modifiedsrc_count++;
+			if (modifiedsrc_count == 1)
+				Var(MODIFIEDSRC_INDEX, gn) = target;
+			else {
+				if (modifiedsrc_count == 2) {
+					Buf_Init(&modifiedsrc, 0);
+					Buf_AddString(&modifiedsrc,
+					    Var(MODIFIEDSRC_INDEX, gn));
+				}
+				Buf_AddSpace(&modifiedsrc);
+				Buf_AddString(&modifiedsrc, target);
+			}
+		}
 	}
 
 	if (allsrc_count > 1)
 		Var(ALLSRC_INDEX, gn) = Buf_Retrieve(&allsrc);
 	if (oodate_count > 1)
 		Var(OODATE_INDEX, gn) = Buf_Retrieve(&oodate);
+	if (modifiedsrc_count > 1)
+		Var(MODIFIEDSRC_INDEX, gn) = Buf_Retrieve(&modifiedsrc);
 
 	if (gn->impliedsrc)
 		Var(IMPSRC_INDEX, gn) = Var(TARGET_INDEX, gn->impliedsrc);

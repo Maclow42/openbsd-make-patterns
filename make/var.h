@@ -61,13 +61,14 @@ extern void Var_Appendi_with_ctxt(const char *, const char *,
 extern void Var_Deletei(const char *, const char *);
 
 /* Dynamic variable indices */
-#define TARGET_INDEX	0
-#define PREFIX_INDEX	1
-#define ARCHIVE_INDEX	2
-#define MEMBER_INDEX	3
-#define IMPSRC_INDEX	4
-#define OODATE_INDEX	5
-#define ALLSRC_INDEX	6
+#define TARGET_INDEX		0
+#define PREFIX_INDEX		1
+#define ARCHIVE_INDEX		2
+#define MEMBER_INDEX		3
+#define IMPSRC_INDEX		4
+#define OODATE_INDEX		5
+#define ALLSRC_INDEX		6
+#define MODIFIEDSRC_INDEX	7
 
 #define Var(idx, gn)	((gn)->localvars.locals[idx])
 
