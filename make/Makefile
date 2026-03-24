@@ -1,4 +1,4 @@
-#	$OpenBSD: Makefile,v 1.65 2023/09/04 11:35:11 espie Exp $
+#	$OpenBSD: Makefile,v 1.66 2025/11/27 09:08:49 tb Exp $
 
 PROG=	make
 CFLAGS+= -I${.OBJDIR} -I${.CURDIR}

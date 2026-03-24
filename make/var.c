@@ -1,4 +1,4 @@
-/*	$OpenBSD: var.c,v 1.107 2024/06/18 02:11:04 millert Exp $	*/
+/*	$OpenBSD: var.c,v 1.108 2025/11/27 09:08:49 tb Exp $	*/
 /*	$NetBSD: var.c,v 1.18 1997/03/18 19:24:46 christos Exp $	*/
 
 /*
