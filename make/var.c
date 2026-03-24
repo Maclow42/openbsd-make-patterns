@@ -85,6 +85,7 @@
 #include "gnode.h"
 #include "dump.h"
 #include "lowparse.h"
+#include "gnuvarfunc.h"
 
 /*
  * This is a harmless return value for Var_Parse that can be used by Var_Subst
@@ -819,10 +820,15 @@ Var_ParseSkip(const char **pstr, SymTable *ctxt)
 	bool result;
 	bool has_modifier;
 	const char *tstr = str;
+	size_t length;
 
 	if (str[1] == 0) {
 		*pstr = str+1;
 		return false;
+	}
+	if (str[1] == '(' && GnuVar_ParseFunctionSkip(str, &length)) {
+		*pstr = str + length;
+		return true;
 	}
 	has_modifier = parse_base_variable_name(&tstr, &name, ctxt);
 	VarName_Free(&name);
@@ -1004,6 +1010,9 @@ Var_Parse(const char *str,	/* The string to parse */
 		*freePtr = false;
 		return err ? var_Error : varNoError;
 	}
+	if (str[1] == '(' &&
+	    GnuVar_ParseFunction(str, ctxt, err, lengthPtr, freePtr, &val))
+		return val;
 
 	has_modifier = parse_base_variable_name(&tstr, &name, ctxt);
 
@@ -1139,6 +1148,14 @@ Var_Check_for_target(const char *str)
 			/* A $ may be escaped with another $. */
 			str += 2;
 			continue;
+		}
+		if (str[1] == '(') {
+			size_t length;
+
+			if (GnuVar_ParseFunctionSkip(str, &length)) {
+				str += length;
+				continue;
+			}
 		}
 
 		tstr = str;
