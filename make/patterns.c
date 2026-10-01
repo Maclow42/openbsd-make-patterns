@@ -65,10 +65,16 @@ static void expand_pattern(const char *, size_t ,
 static void
 Targ_RemoveTmpTarg(void *, void *unused UNUSED);
 
+bool
+is_pattern(const GNode *gn)
+{
+	return strchr(gn->name, '%') != NULL;
+}
+
 void
 may_register_as_pattern(GNode *gn)
 {
-	if (strchr(gn->name, '%') == NULL) {
+	if (!is_pattern(gn)) {
 		gn->is_tmp = false;
 		return;
 	}

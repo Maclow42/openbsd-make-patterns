@@ -29,6 +29,7 @@
  */
 
 extern void Pattern_Init(void);
+extern bool is_pattern(const GNode *);
 extern void may_register_as_pattern(GNode *);
 extern char *find_file_hash_with_pattern(struct ohash *, const char *);
 extern bool match_pattern(const char *, const char *, char **);
