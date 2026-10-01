@@ -8,19 +8,18 @@ make/*hashconsts.h
 make/*hashconsts.h.tmp
 
 # Testsuite: each test writes its outputs next to its Makefile, so
-# everything in a test directory is ignored but the Makefile and the
-# input files listed below. Add new input files to this list.
+# everything in a test directory is ignored but the Makefile, the
+# KNOWN_FAILURE marker and the input files listed below. Add new input
+# files to this list.
 make/testsuite/*/*
 !make/testsuite/*/Makefile
+!make/testsuite/*/KNOWN_FAILURE
 !make/testsuite/14-patterned-file/file.in
 !make/testsuite/19-vpath-pattern/src/
 make/testsuite/19-vpath-pattern/src/*
 !make/testsuite/19-vpath-pattern/src/file.in
-make/testsuite/notes
 
-# Local files
-.vscode/
+# Patches: scripts/diff-upstream.sh writes to diffs/
 diffs/
 *.diff
 *.orig
-name
