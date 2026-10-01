@@ -1,12 +1,14 @@
 #!/bin/sh
-# Sync this fork's make/ tree with the latest official OpenBSD make source,
-# then merge those upstream changes into the current branch so local
-# modifications (pattern rules, etc.) get combined with upstream updates via
-# git's normal merge/conflict resolution.
+# Sync this fork's make/ tree with the latest official OpenBSD make source:
+# pull the OpenBSD source tree at $SRC_ROOT (fast-forward only), mirror
+# its usr.bin/make onto the upstream branch, then merge those upstream
+# changes into the current branch so local modifications (pattern rules,
+# etc.) get combined with upstream updates via git's normal merge/conflict
+# resolution.
 #
-# Must be run from the HOST (Debian): see scripts/lib.sh. Never switches you
-# off your current branch (the upstream snapshot is built in a disposable
-# worktree), so this is safe to run with work in progress on `main`.
+# See scripts/lib.sh for $SRC_ROOT. Never switches you off your current
+# branch (the upstream snapshot is built in a disposable worktree), so this
+# is safe to run with work in progress on `main`.
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -19,6 +21,10 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+require_src
+echo "==> Pulling the OpenBSD source tree ($SRC_ROOT)..."
+git -C "$SRC_ROOT" pull --ff-only --quiet
 
 echo "==> Updating '$UPSTREAM_BRANCH' branch from official source ($SRC_MAKE)..."
 if update_upstream_branch; then
