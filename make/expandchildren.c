@@ -54,6 +54,7 @@
 #include "lst.h"
 #include "gnode.h"
 #include "suff.h"
+#include "patterns.h"
 
 static void ExpandChildren(LstNode, GNode *);
 static void ExpandVarChildren(LstNode, GNode *, GNode *);
@@ -215,6 +216,10 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 {
 	GNode	*cgn = Lst_Datum(ln);
 
+	if (DEBUG(PATTERN)) {
+		printf("\t - expand %s\n", cgn->name);
+	}
+	
 	/* First do variable expansion -- this takes precedence over wildcard
 	 * expansion. If the result contains wildcards, they'll be gotten to
 	 * later since the resulting words are tacked on to the end of the
@@ -237,6 +242,13 @@ void
 expand_children_from(GNode *parent, LstNode from)
 {
 	LstNode np, ln;
+
+	/* If no children at the beginning, try to find some in pattern rules. */
+	if (parent->children_left == 0)
+		if (expand_children_from_pattern(parent))
+			return;
+	if (DEBUG(PATTERN))
+		printf("Expanding children of %s\n", parent->name);
 
 	for (ln = from; ln != NULL; ln = np) {
 		np = Lst_Adv(ln);

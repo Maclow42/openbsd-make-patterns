@@ -91,6 +91,7 @@ extern int debug;
 #define DEBUG_HELDJOBS		0x20000
 #define DEBUG_DOUBLE		0x40000
 #define DEBUG_TARGGROUP		0x80000
+#define DEBUG_PATTERN	0x100000
 
 #define CONCAT(a,b)	a##b
 

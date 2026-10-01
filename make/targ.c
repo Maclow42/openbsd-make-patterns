@@ -110,6 +110,7 @@
 #include "node_int.h"
 #include "nodehashconsts.h"
 #include "dump.h"
+#include "patterns.h"
 
 static struct ohash targets;	/* hash table of targets */
 struct ohash_info gnode_info = {
@@ -172,6 +173,8 @@ Targ_mk_node(const char *name, const char *ename,
 	gn->basename = NULL;
 	gn->sibling = gn;
 	gn->groupling = NULL;
+	gn->expanded_from = NULL;
+	may_register_as_pattern(gn);
 
 #ifdef STATS_GN_CREATION
 	STAT_GN_COUNT++;

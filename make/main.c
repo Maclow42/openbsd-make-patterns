@@ -64,6 +64,7 @@
 #include "memory.h"
 #include "dump.h"
 #include "enginechoice.h"
+#include "patterns.h"
 
 #define MAKEFLAGS	".MAKEFLAGS"
 
@@ -286,6 +287,9 @@ MainParseArgs(int argc, char **argv)
 					break;
 				case 'p':
 					debug |= DEBUG_PARALLEL;
+					break;
+				case 'P':
+					debug |= DEBUG_PATTERN;
 					break;
 				case 'q':
 					debug |= DEBUG_QUICKDEATH;
@@ -815,6 +819,8 @@ main(int argc, char **argv)
 	/* print the graph now it's been processed if the user requested it */
 	if (DEBUG(GRAPH2))
 		post_mortem();
+
+	Targ_RemoveAllTmpTargets();
 
 	/* Note that we only hit this code if -k is used, otherwise we
 	 * exited early in case of errors. */

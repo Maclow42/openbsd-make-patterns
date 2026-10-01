@@ -81,6 +81,7 @@
 #include "error.h"
 #include "str.h"
 #include "timestamp.h"
+#include "patterns.h"
 
 
 /*	A search path consists of a Lst of PathEntry structures. A Path
@@ -289,6 +290,14 @@ find_file_hashi(struct PathEntry *p, const char *file, const char *efile,
 {
 	struct ohash 	*h = &p->files;
 
+	if (strchr(file, '%') != NULL) {
+		char *result;
+
+		result = find_file_hash_with_pattern(h, file);
+
+		if (result != NULL)
+			return result;
+	}
 	return ohash_find(h, ohash_lookup_interval(h, file, efile, hv));
 }
 

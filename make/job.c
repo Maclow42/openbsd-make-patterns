@@ -106,6 +106,7 @@
 #include "memory.h"
 #include "buf.h"
 #include "enginechoice.h"
+#include "patterns.h"
 
 static int	aborting = 0;	    /* why is the make aborting? */
 #define ABORT_ERROR	1	    /* Because of an error */
@@ -547,10 +548,14 @@ postprocess_job(Job *job)
 	if (errorJobs != NULL && aborting != ABORT_INTERRUPT)
 		aborting = ABORT_ERROR;
 
-	if (aborting == ABORT_ERROR && DEBUG(QUICKDEATH))
-		handle_fatal_signal(SIGINT);
-	if (aborting == ABORT_ERROR && Job_Empty())
-		Finish();
+	if (aborting == ABORT_ERROR) {
+		Targ_RemoveAllTmpTargets();
+
+		if (DEBUG(QUICKDEATH))
+			handle_fatal_signal(SIGINT);
+		if (Job_Empty())
+			Finish();
+	}
 }
 
 /* expensive jobs handling: in order to avoid forking an exponential number
