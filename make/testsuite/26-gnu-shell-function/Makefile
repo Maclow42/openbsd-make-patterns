@@ -23,4 +23,4 @@ test:
 
 
 clean:
-	@rm -f result-basic.out result-nested.out
+	@rm -f basic.out nested.out
