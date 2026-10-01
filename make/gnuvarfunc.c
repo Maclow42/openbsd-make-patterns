@@ -89,8 +89,9 @@ command_shell(const char *arg, const char *end, SymTable *ctxt, bool err,
 
 	exec_err = NULL;
 	output = Cmd_Exec(expanded, &exec_err);
-	if (exec_err != NULL && DEBUG(VAR))
-		printf(exec_err, expanded);
+	/* Same warning as a failing != assignment. */
+	if (exec_err != NULL)
+		Parse_Error(PARSE_WARNING, exec_err, expanded);
 	free(expanded);
 
 	*freePtr = true;
