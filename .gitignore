@@ -6,10 +6,12 @@
 *.tmp
 *.tar.gz
 *.diff
-make$
+*.orig
+make/make
 make.core
 name
 generate
 condhashconsts.h
 nodehashconsts.h
 varhashconsts.h
+make/testsuite/notes
