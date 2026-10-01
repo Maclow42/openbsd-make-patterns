@@ -103,31 +103,47 @@ This implementation adds pattern rule support to OpenBSD make through the follow
    - `Targ_RemoveAllTmpChildren()`: Removes intermediate files after build
    - Automatic cleanup of temporary pattern-generated targets
 
+## Development environment
+
+This fork is developed inside an OpenBSD QEMU VM (the real toolchain and
+`make.1`/`regress`-style testing need real OpenBSD), bridged to the host via
+sshfs so this checkout can be edited with normal editors on the host while
+building/testing happens on OpenBSD. See `../vms/openbsd.sh` on the host for
+the VM lifecycle (`start`, `stop`, `ssh`, `status`, ...).
+
 ## Building
 
-The project uses OpenBSD's standard make build system:
-
 ```sh
-cd make
-make
+./scripts/build.sh
 ```
+
+Equivalent to `cd make && make`. From the host (VM running): `../openbsd.sh build`.
 
 This produces the `make` binary with pattern support enabled.
 
 ## Testing
 
-The project includes a comprehensive test suite in `testsuite_patterns/`:
+The test suite lives in `make/testsuite/`, one directory per case, driven by
+a top-level `Makefile`.
 
 ### Run All Tests
 ```sh
-cd testsuite_patterns
-./launch_testsuite.sh
+./scripts/test.sh              # builds and tests with this fork's own make
+./scripts/test.sh system       # tests with the system make (bmake)
+./scripts/test.sh gmake        # tests with GNU make, as a behavior reference
+./scripts/test.sh custom:/path/to/make
 ```
+From the host (VM running): `../openbsd.sh test [mine|system|gmake|custom[:/path]]`.
+
+Recursive test runs automatically use whichever binary you picked -- the
+testsuite's Makefiles call `$(MAKE)` internally, which both bmake and GNU
+make set to the binary that was actually invoked.
 
 ### Run Individual Test
 ```sh
-cd testsuite_patterns/01-basic-pattern
-../../make/make
+cd make/testsuite/01-basic-pattern
+make clean all
+make test
 ```
 
 ### Test Categories
@@ -138,14 +154,38 @@ cd testsuite_patterns/01-basic-pattern
 - **13-14**: Pattern priority and automatic variables
 - **15-18**: Edge cases (empty stems, subdirectories)
 - **19-23**: Target types (secondary, intermediate, VPATH)
-- **24-32**: Advanced features (static patterns, nested patterns, terminal rules)
+- **24-26**: Advanced features (static patterns, GNU shell function)
 
 ### Debug Mode
 
 Enable verbose pattern matching output:
 ```sh
-../../make/make -dP
+make/make -dP
 ```
+
+## Keeping up with upstream OpenBSD make
+
+Run these **from the host** (they read the official OpenBSD source tree
+checked out there, and write through the sshfs mount):
+
+```sh
+./scripts/sync-upstream.sh   # or: ../openbsd.sh sync
+```
+Mirrors the current official `usr.bin/make` onto an `upstream` branch and
+merges it into your current branch, so upstream changes and local pattern
+rule modifications combine via git's normal merge/conflict resolution.
+
+```sh
+./scripts/diff-upstream.sh   # or: ../openbsd.sh diff
+```
+Writes a timestamped, git-formatted patch (`diff --git a/... b/...`, with
+blob hashes and rename detection) of this fork's `make/` -- including
+uncommitted work in progress -- against the official source, to `diffs/`,
+for review or for sending a patch upstream.
+
+Both commands maintain an `upstream` branch mirroring the official source,
+built in a disposable `git worktree` -- they never check out or touch your
+current branch.
 
 ## Compatibility
 
