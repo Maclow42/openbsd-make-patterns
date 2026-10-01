@@ -133,7 +133,20 @@ a top-level `Makefile`.
 ./scripts/test.sh gmake        # tests with GNU make, as a behavior reference
 ./scripts/test.sh custom:/path/to/make
 ```
-From the host (VM running): `../openbsd.sh test [mine|system|gmake|custom[:/path]]`.
+From the host (VM running): `../openbsd.sh test [--branch REF] [mine|system|gmake|custom[:/path]]`.
+
+### Test Another Branch
+```sh
+./scripts/test.sh --branch feature/pattern-rules
+./scripts/test.sh --branch integration/all-features gmake
+```
+`--branch` builds and tests a branch, tag or commit in a disposable worktree:
+the current checkout is left untouched, and the tested branch does not need
+`scripts/` (the `feature/*` branches start from `upstream` and don't have
+it). Only committed changes are tested.
+
+A test passes only if its `make test` exits with status 0 and prints `[OK]`;
+the runner exits with an error if any test fails.
 
 Recursive test runs automatically use whichever binary you picked -- the
 testsuite's Makefiles call `$(MAKE)` internally, which both bmake and GNU
