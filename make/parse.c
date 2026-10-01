@@ -93,6 +93,7 @@
 #include "garray.h"
 #include "node_int.h"
 #include "nodehashconsts.h"
+#include "patterns.h"
 
 
 /* gsources and gtargets should be local to some functions, but they're
@@ -1011,15 +1012,24 @@ ParseDoDependency(const char *line)	/* the line to parse */
  *	we note that we got double commands (in case we actually get to run 
  *	that ambiguous target).
  *
- *	Note this does not apply to :: dependency lines, since those 
+ *	Note this does not apply to :: dependency lines, since those
  *	will generate fresh cloned nodes and add them to the cohorts
  *	field of the main node.
+ *
+ *	Pattern rules follow gnu make instead: a new definition replaces
+ *	the old commands, so the last rule wins. Old commands can't be
+ *	freed, since other targets of the same rule may reference them.
  */
 static void
 ParseAddCmd(void *gnp, void *cmd)
 {
 	GNode *gn = gnp;
 
+	if ((gn->type & OP_HAS_COMMANDS) && is_pattern(gn)) {
+		Lst_Destroy(&gn->commands, NOFREE);
+		Lst_Init(&gn->commands);
+		gn->type &= ~OP_HAS_COMMANDS;
+	}
 	if (!(gn->type & OP_HAS_COMMANDS))
 		Lst_AtEnd(&gn->commands, cmd);
 	else
