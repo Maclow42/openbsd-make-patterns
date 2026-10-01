@@ -27,7 +27,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define LOCAL_SIZE	7
+#define LOCAL_SIZE	8
 
 /* SymTable is private to var.c, but is declared here to allow for
    local declaration of symbol tables

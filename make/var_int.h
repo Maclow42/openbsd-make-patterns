@@ -34,6 +34,7 @@
 #define PREFIX		  "*"	/* Common prefix */
 #define ARCHIVE 	  "!"	/* Archive in "archive(member)" syntax */
 #define MEMBER		  "%"	/* Member in "archive(member)" syntax */
+#define MODIFIEDSRC	  "^"	/* gnu make extension */
 #define LONGTARGET	".TARGET"
 #define LONGOODATE	".OODATE"
 #define LONGALLSRC	".ALLSRC"

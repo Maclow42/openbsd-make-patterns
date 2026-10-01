@@ -46,6 +46,7 @@ char *table_var[] = {
 	M(PREFIX),
 	M(ARCHIVE),
 	M(MEMBER),
+	M(MODIFIEDSRC),
 	M(LONGTARGET),
 	M(LONGOODATE),
 	M(LONGALLSRC),

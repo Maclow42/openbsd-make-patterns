@@ -152,6 +152,7 @@ static char *varnames[] = {
 	IMPSRC,
 	OODATE,
 	ALLSRC,
+	MODIFIEDSRC,
 };
 
 static bool xtlist[] = {
@@ -163,6 +164,7 @@ static bool xtlist[] = {
 	true,	/* $< */
 	false,	/* $? */
 	false,	/* $> */
+	false,  /* $^ */
 };
 
 /* so that we can access tlist[-1] */
@@ -310,6 +312,10 @@ classify_var(const char *name, const char **enamePtr, uint32_t *pk, char *ext)
 	case K_ALLSRC % MAGICSLOTS1:
 		if (name[0] == ALLSRC[0] && len == 1)
 			return ALLSRC_INDEX;
+		break;
+	case K_MODIFIEDSRC % MAGICSLOTS1:
+		if (name[0] == MODIFIEDSRC[0] && len == 1)
+			return MODIFIEDSRC_INDEX;
 		break;
 	case K_IMPSRC % MAGICSLOTS1:
 		if (name[0] == IMPSRC[0] && len == 1)
