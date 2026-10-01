@@ -1,168 +1,194 @@
-# OpenBSD Make with Pattern Rules Support
+# OpenBSD make with GNU make extensions
 
-This project extends OpenBSD's make utility to support GNU Make-style pattern rules.
+A fork of OpenBSD's `make(1)` adding three GNU make features, each developed
+on its own branch so it can be reviewed and sent upstream on its own:
 
-## What are Pattern Rules?
+| Feature | Branch |
+|---|---|
+| Pattern rules (`%.o: %.c`) | `feature/pattern-rules` |
+| `$^` automatic variable | `feature/automatic-vars` |
+| `$(shell ...)` function | `feature/gnu-shell-func` |
 
-Pattern rules define how to build targets based on filename patterns using the `%` wildcard character. Unlike suffix rules, pattern rules:
+`main` combines the three features with the development tooling.
 
-- Use explicit patterns (e.g., `%.o: %.c`) instead of implicit suffix lists
-- Support patterns anywhere in the filename, not just at the end
-- Allow multiple wildcards and complex transformations
-- Provide clearer and more maintainable Makefiles
-- Are the standard in GNU Make and more widely understood
+## Features
 
-### Advantages over Suffix Rules
+### Pattern rules
 
-**Suffix Rules (traditional):**
-```makefile
-.SUFFIXES: .c .o
-.c.o:
-	cc -c $<
-```
+A pattern rule uses `%` to describe how to build a whole family of targets.
+The part of the name matched by `%`, the stem, is substituted in the
+prerequisites:
 
-**Pattern Rules (modern):**
 ```makefile
 %.o: %.c
 	cc -c $< -o $@
 ```
 
-Pattern rules offer:
-- Better readability: the relationship between source and target is explicit
-- More flexibility: patterns can match any part of the filename
-- Automatic variables: `$@` (target), `$<` (first prerequisite), `$^` (all prerequisites)
-- Compatibility: widely used in modern build systems
+builds `foo.o` from `foo.c`, `bar.o` from `bar.c`, and so on. Compared to
+suffix rules (`.c.o:`), the relationship between target and source is
+explicit, and `%` is not limited to suffixes:
 
-## Examples
-
-### Basic Pattern Rule
 ```makefile
-%.o: %.c
-	gcc -c $< -o $@
-```
-Builds `foo.o` from `foo.c`, `bar.o` from `bar.c`, etc.
+%.o: %.c %.h            # several prerequisites
+	cc -c $< -o $@
 
-### Multiple Prerequisites
-```makefile
-%.o: %.c %.h
-	gcc -c $< -o $@
+build/%.o: src/%.c      # directories
+	cc -c $< -o $@
+
+lib%.a: lib%.src        # prefix and suffix
+	cp $< $@
 ```
 
-### Pattern in Subdirectories
+Rules chain, and intermediate files built along the way are removed at the
+end of the build, as in GNU make:
+
 ```makefile
-build/%.o: src/%.c
-	gcc -c $< -o $@
+%.html: %.tmp
+	cp $< $@
+%.tmp: %.md
+	cp $< $@
 ```
 
-### Multiple Extensions
-```makefile
-%.pdf: %.tex
-	pdflatex $<
+`make doc.html` builds `doc.tmp` from `doc.md`, then `doc.html`, then
+removes `doc.tmp`. `.SECONDARY` and `.PRECIOUS` keep such files. Defining
+the same pattern rule twice replaces the first definition (the last one
+wins), and `$<` refers to the first prerequisite of the matched rule.
 
-%.html: %.md
-	markdown $< > $@
+### `$^`
+
+`$^` expands to all the prerequisites of the target:
+
+```makefile
+prog: a.o b.o
+	cc -o $@ $^
 ```
 
-## Project Modifications
+### `$(shell ...)`
 
-This implementation adds pattern rule support to OpenBSD make through the following key modifications:
+`$(shell command)` expands to the output of `command`, and nests with
+variables and other `$(shell ...)` calls:
 
-### Core Features
+```makefile
+FILES = $(shell ls)
+```
 
-1. **Pattern Detection and Matching** (`targ.c`, `targ.h`)
-   - `match_pattern()`: Matches filenames against patterns with `%` wildcards
-   - `Targ_FindPatternMatchingNode()`: Searches for pattern rules matching a target
-   - `Targ_BuildFromPattern()`: Expands pattern rules into concrete targets
-   - Pattern nodes tracking via `is_pattern` flag in GNode structure
+### Debugging
 
-2. **Dynamic Target Creation** (`targ.c`)
-   - `Targ_CreateNodeFromPattern()`: Creates new targets from pattern templates
-   - Pattern expansion: replaces `%` with matched stem
-   - Command copying: transfers recipes from pattern to concrete targets
-   - Temporary target management: `is_tmp` flag for intermediate files
-   - New GNode fields (`gnode.h`):
-     - `is_pattern`: Indicates if the node represents a pattern rule
-     - `expanded_from`: Points to the original pattern node
-     - `is_tmp`: Marks temporary targets for cleanup
+`make -dP` traces how targets are matched against pattern rules.
 
-3. **Children Expansion** (`expandchildren.c`)
-   - Modified `expand_children_from()` to search for pattern matches
-   - Automatic prerequisite generation from pattern rules
-   - Fallback to pattern rules when no explicit dependencies exist
+## Status
 
-4. **Directory Search** (`dir.c`)
-   - `find_file_hashi_with_pattern()`: Pattern-aware file lookup
-   - Integration with existing directory caching mechanism
+The testsuite follows GNU make's behavior: GNU make passes all 28 tests,
+this fork passes 24. Known differences with GNU make:
 
-5. **Debug Support** (`defines.h`, `main.c`)
-   - New `DEBUG_PATTERN` flag (0x100000)
-   - Activated with `-dP` command-line option
-   - Detailed pattern matching trace output
+- double-colon pattern rules (test 10)
+- several pattern rules for the same target with different prerequisites,
+  e.g. `%.o: %.c` and `%.o: %.cpp`: GNU make keeps both and picks the one
+  whose prerequisites exist, this fork merges them (test 15)
+- `.INTERMEDIATE` on a file built by a pattern rule (test 17)
+- pattern-specific variables, e.g. `%.out: FLAGS = ok` (test 24)
+- static pattern rules (`a.o b.o: %.o: %.c`) are not supported
+- only one `%` per pattern
+- `.PHONY` targets are matched against pattern rules, which GNU make never
+  does (a catch-all `%::` rule also builds `clean`)
 
-6. **Cleanup** (`engine.c`)
-   - `Targ_RemoveAllTmpChildren()`: Removes intermediate files after build
-   - Automatic cleanup of temporary pattern-generated targets
+Redefining the commands of an ordinary target keeps the BSD behavior: the
+first definition wins and the next ones are ignored.
+
+## Implementation
+
+Pattern rules (`feature/pattern-rules`):
+- `patterns.c`, `patterns.h`: every node whose name contains `%` is
+  registered as a pattern (`may_register_as_pattern()`, called from
+  `Targ_mk_node()` in `targ.c`). `Targ_FindPatternMatchingNode()` and
+  `match_pattern()` find the rule matching a target, and
+  `Targ_BuildFromPattern()` instantiates it, creating the prerequisites as
+  temporary nodes.
+- `expandchildren.c`: `expand_children_from()` falls back to pattern rules
+  for a target without prerequisites.
+- `dir.c`: `find_file_hashi()` resolves names containing `%` against the
+  directory cache.
+- `gnode.h`: `expanded_from` (the pattern a node comes from) and `is_tmp`
+  (intermediate file to remove).
+- `main.c`, `job.c`: `Targ_RemoveAllTmpTargets()` removes intermediate files
+  at the end of the build and when a job fails.
+- `parse.c`: a redefined pattern rule replaces the previous commands.
+- `var.c`: `$<` is allowed in commands expanded from a pattern.
+- `main.c`, `defines.h`: the `-dP` debug flag (`DEBUG_PATTERN`).
+
+`$^` (`feature/automatic-vars`): a new dynamic variable `MODIFIEDSRC`
+(`var_int.h`, `var.h`, `var.c`, `generate.c`, `symtable.h`), filled in
+`Make_DoAllVar()` in `engine.c`.
+
+`$(shell ...)` (`feature/gnu-shell-func`): `gnuvarfunc.c` and
+`gnuvarfunc.h` parse GNU make style functions (balanced parentheses,
+nested expansions) and run `shell`. `var.c` hooks them into `Var_Parse()`,
+`Var_ParseSkip()` and `Var_Check_for_target()`.
 
 ## Development environment
 
-This fork is developed inside an OpenBSD QEMU VM (the real toolchain and
-`make.1`/`regress`-style testing need real OpenBSD), bridged to the host via
-sshfs so this checkout can be edited with normal editors on the host while
-building/testing happens on OpenBSD. See `../vms/openbsd.sh` on the host for
-the VM lifecycle (`start`, `stop`, `ssh`, `status`, ...).
+This fork is developed inside an OpenBSD QEMU VM, as building and testing
+need real OpenBSD. The VM is bridged to the host via sshfs, so this
+checkout can be edited with normal editors on the host. `../openbsd.sh`, on
+the host, manages the VM (`start`, `stop`, `status`, `ssh`) and wraps the
+scripts below: `build` and `test` run inside the VM over SSH, `sync` and
+`diff` run on the host.
+
+`../openbsd.sh build` and `../openbsd.sh test` always run main's copy of
+the scripts on the current checkout, so they work on every branch,
+including the `feature/*` branches, which have no `scripts/`.
 
 ## Building
 
 ```sh
-./scripts/build.sh
+../openbsd.sh build      # from the host
 ```
 
-Equivalent to `cd make && make`. From the host (VM running): `../openbsd.sh build`.
-
-This produces the `make` binary with pattern support enabled.
+This produces `make/make`. Inside the VM, `cd make && make` does the same.
 
 ## Testing
 
-The test suite lives in `make/testsuite/`, one directory per case, driven by
-a top-level `Makefile`.
+The testsuite lives in `make/testsuite/`, one directory per test, run by
+`make/testsuite/Makefile`. Each feature branch carries the tests of its
+feature.
 
-### Run All Tests
 ```sh
-./scripts/test.sh              # builds and tests with this fork's own make
-./scripts/test.sh system       # tests with the system make (bmake)
-./scripts/test.sh gmake        # tests with GNU make, as a behavior reference
-./scripts/test.sh custom:/path/to/make
+../openbsd.sh test                 # build and test the current checkout
+../openbsd.sh test gmake           # same tests with GNU make
+../openbsd.sh test system          # same tests with the system make
+../openbsd.sh test custom:/path/to/make
+../openbsd.sh test --branch feature/pattern-rules
+../openbsd.sh test --branch feature/pattern-rules gmake
 ```
-From the host (VM running): `../openbsd.sh test [--branch REF] [mine|system|gmake|custom[:/path]]`.
 
-### Test Another Branch
-```sh
-./scripts/test.sh --branch feature/pattern-rules
-./scripts/test.sh --branch integration/all-features gmake
-```
-`--branch` builds and tests a branch, tag or commit in a disposable worktree:
-the current checkout is left untouched, and the tested branch does not need
-`scripts/` (the `feature/*` branches start from `upstream` and don't have
-it). Only committed changes are tested.
+Without `--branch`, the current checkout is tested as it is on disk,
+uncommitted changes included. `--branch REF` builds and tests a branch, tag
+or commit in a disposable worktree instead, leaving the checkout untouched;
+only committed changes are tested. Inside the VM, `./scripts/test.sh` takes
+the same arguments, on branches that have `scripts/`.
 
-A test passes only if its `make test` exits with status 0 and prints `[OK]`;
-the runner exits with an error if any test fails.
+A test passes only if its `make test` exits with status 0 and prints
+`[OK]`. The run fails if any test fails. GNU make is the reference: a test
+that fails with `gmake` is a wrong test.
 
-Recursive test runs automatically use whichever binary you picked -- the
-testsuite's Makefiles call `$(MAKE)` internally, which both bmake and GNU
-make set to the binary that was actually invoked.
+To run a single test, inside the VM:
 
-### Run Individual Test
 ```sh
 cd make/testsuite/01-basic-pattern
-make clean all
-make test
+../../make clean all
+../../make test
 ```
 
-### Test Categories
+### Adding a test
 
-Every test follows GNU make's behavior and passes with `gmake`
-(`./scripts/test.sh gmake`). Each feature branch carries its own tests.
+Create `make/testsuite/NN-name/Makefile` on the branch of the feature it
+tests, with `all`, `test` (prints `[OK]` or `[KO]` and exits accordingly)
+and `clean` targets, following the existing tests. Everything a test writes
+in its directory is ignored by git, except its `Makefile`: input files a
+test needs must be listed in `.gitignore`, like `14-patterned-file/file.in`.
+Check that the test passes with `gmake`.
+
+### Tests
 
 Pattern rules (`feature/pattern-rules`):
 - **01-04**: Basic pattern rules (no prerequisite, explicit prerequisite,
@@ -174,52 +200,102 @@ Pattern rules (`feature/pattern-rules`):
   searching a file matching a pattern, choosing a rule by existing
   prerequisites
 - **16-18**: `.SECONDARY`, `.INTERMEDIATE` and `.PRECIOUS` targets
-- **19-22**: `vpath`, double extensions, static pattern rules, `%` in the
-  middle of a name
+- **19-22**: `VPATH`, double extensions, a pattern rule over a list of
+  targets, `%` in the middle of a name
 - **23-25**: Substitution references, pattern-specific variables, removal
   order of intermediate files
 
-GNU `$(shell ...)` function (`feature/gnu-shell-func`):
+`$(shell ...)` (`feature/gnu-shell-func`):
 - **26-27**: Basic, nested and tricky `$(shell ...)` expansions
 
-Automatic variables (`feature/automatic-vars`):
+`$^` (`feature/automatic-vars`):
 - **28**: `$^` (all prerequisites)
 
-### Debug Mode
+## Development workflow
 
-Enable verbose pattern matching output:
-```sh
-make/make -dP
-```
+### Branches
 
-## Keeping up with upstream OpenBSD make
+| Branch | Content | Changed by |
+|---|---|---|
+| `upstream` | Mirror of the official OpenBSD make | `../openbsd.sh sync` only |
+| `feature/*` | One feature and its tests, based on `upstream` | Development |
+| `tooling/test-branch` | Scripts, README, `.gitignore` | Tooling changes |
+| `integration/all-features` | Everything merged together, to validate | Integration |
+| `main` | Released state | Fast-forward from integration only |
 
-Run these **from the host** (they read the official OpenBSD source tree
-checked out there, and write through the sshfs mount):
+Never commit feature code directly on `main`: each feature must stay a
+clean patch against `upstream`.
 
-```sh
-./scripts/sync-upstream.sh   # or: ../openbsd.sh sync
-```
-Mirrors the current official `usr.bin/make` onto an `upstream` branch and
-merges it into your current branch, so upstream changes and local pattern
-rule modifications combine via git's normal merge/conflict resolution.
+### Working on a feature
 
 ```sh
-./scripts/diff-upstream.sh   # or: ../openbsd.sh diff
+git checkout feature/pattern-rules
+# edit, add or update tests
+../openbsd.sh test                 # uncommitted work included
+../openbsd.sh test gmake           # the tests themselves must pass here
+git commit
 ```
-Writes a timestamped, git-formatted patch (`diff --git a/... b/...`, with
-blob hashes and rename detection) of this fork's `make/` -- including
-uncommitted work in progress -- against the official source, to `diffs/`,
-for review or for sending a patch upstream.
 
-Both commands maintain an `upstream` branch mirroring the official source,
-built in a disposable `git worktree` -- they never check out or touch your
-current branch.
+### Integrating
 
-## Compatibility
+```sh
+git checkout integration/all-features
+git merge --no-ff feature/pattern-rules
+../openbsd.sh test
+git checkout main
+git merge --ff-only integration/all-features
+git push origin main integration/all-features feature/pattern-rules
+```
 
-This implementation maintains backward compatibility with OpenBSD make while adding GNU Make pattern rule semantics. Traditional suffix rules continue to work as before.
+When a test passes on its feature branch but fails on the integration
+branch, two features interact: fix it before moving `main`. If
+`--ff-only` refuses, `main` got a commit of its own: merge `main` into the
+integration branch first.
+
+Tooling changes follow the same path from `tooling/test-branch`.
+
+### Creating a feature
+
+```sh
+git checkout -b feature/new-feature upstream
+git checkout main -- .gitignore
+git commit -m "[ADD] .gitignore for build products and testsuite outputs"
+```
+
+Always start from `upstream`, never from `main`.
+
+### Keeping up with upstream OpenBSD make
+
+`../openbsd.sh sync` (or `./scripts/sync-upstream.sh`, from the host, on a
+branch that has `scripts/`) mirrors
+the official `usr.bin/make`, read from the OpenBSD source tree checked out on
+the host, onto the `upstream` branch, then merges it into the current
+branch. Run it on the integration branch, then bring the update to every
+feature:
+
+```sh
+git checkout integration/all-features
+../openbsd.sh sync
+git checkout feature/pattern-rules
+git merge upstream                 # same for each feature/* branch
+../openbsd.sh test
+```
+
+then integrate as usual. The `upstream` branch is built in a disposable
+worktree and never edited by hand.
+
+### Sending a feature upstream
+
+```sh
+git diff upstream feature/pattern-rules -- make/ ':!make/testsuite'
+```
+
+gives the patch of one feature alone. `../openbsd.sh diff` (or
+`./scripts/diff-upstream.sh`, from the host, on a branch that has
+`scripts/`) refreshes `upstream`, then writes the diff of the current
+checkout's `make/` against it, uncommitted changes included, to `diffs/`.
 
 ## License
 
-This project is based on OpenBSD make, which is distributed under the BSD license. See individual source files for detailed copyright information.
+Based on OpenBSD make, distributed under the BSD license. See the source
+files for copyright details.
