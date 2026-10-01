@@ -16,14 +16,14 @@ test: clean
 		printf "Testing $$dir ... "; \
 		$(MAKE) -s -C $$dir clean > /dev/null 2>&1; \
 		$(MAKE) -s -C $$dir all > /dev/null 2>&1; \
-		case `$(MAKE) -s -C $$dir test 2>&1` in \
-		*OK*) \
+		if out=`$(MAKE) -s -C $$dir test 2>&1` && \
+		    echo "$$out" | grep -qx '\[OK\]'; then \
 			echo "[OK]"; \
-			passed=$$(( $$passed + 1));; \
-		*) \
+			passed=$$(( $$passed + 1)); \
+		else \
 			echo "[KO]"; \
-			failed=$$(( $$failed + 1));; \
-		esac; \
+			failed=$$(( $$failed + 1)); \
+		fi; \
 	    done; \
 	    echo ""; \
 	    echo "=== Test Summary ==="; \
