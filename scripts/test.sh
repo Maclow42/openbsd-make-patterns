@@ -36,6 +36,8 @@ if [ "$1" = "--branch" ]; then
     TREE="$(mktemp -d /tmp/make-test-wt.XXXXXX)"
     trap 'git -C "$ROOT" worktree remove --force "$TREE" >/dev/null 2>&1 || rm -rf "$TREE"; git -C "$ROOT" worktree prune' EXIT
     git -C "$ROOT" worktree add -q --detach "$TREE" "$REF"
+    [ -d "$TREE/make/testsuite" ] ||
+        { echo "error: '$REF' has no make/testsuite to run" >&2; exit 1; }
     echo "==> Testing $REF ($(git -C "$TREE" log -1 --format='%h %s'))"
 fi
 
