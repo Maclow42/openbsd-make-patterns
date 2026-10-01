@@ -5,7 +5,7 @@
 all: prefix_file_suffix.out
 
 prefix_%_suffix.out: prefix_%_suffix.in
-	@cat prefix_file_suffix.in > $@
+	@cat $< > $@
 
 # ========== INPUT FILES ==========
 prefix_file_suffix.in:
@@ -21,4 +21,4 @@ test:
 	exit 1
 
 clean:
-	@rm -f `ls | grep -v Makefile`
+	@rm -rf `ls | grep -v -e Makefile -e KNOWN_FAILURE`

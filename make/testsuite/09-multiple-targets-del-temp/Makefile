@@ -13,14 +13,13 @@ all: file.out
 
 # ========== VALIDATION RULES ==========
 test:
-	@if [ -f file.out ] && [ ! -f file1.tmp ] && [ ! -f file2.tmp ]; then \
-		if grep -q "Test" file.out && grep -q "passed" file.out; then \
-			echo "[OK]"; \
-			exit 0; \
-		fi; \
+	@if [ -f file.out ] && [ ! -f file1.tmp ] && [ ! -f file2.tmp ] && \
+	    grep -q "Test" file.out && grep -q "passed" file.out; then \
+		echo "[OK]"; \
+		exit 0; \
 	fi; \
 	echo "[KO]"; \
 	exit 1
 
 clean:
-	@rm -f `ls | grep -v Makefile`
+	@rm -rf `ls | grep -v -e Makefile -e KNOWN_FAILURE`

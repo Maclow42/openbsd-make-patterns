@@ -5,10 +5,10 @@
 all: file.out
 
 %.out: ./src/tmp/%.tmp
-	@cat src/tmp/file.tmp > $@
+	@cat $< > $@
 
 %.tmp:
-	@mkdir -p src/tmp
+	@mkdir -p $(@D)
 	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
@@ -21,4 +21,4 @@ test:
 	exit 1
 
 clean:
-	@rm -rf `ls | grep -v Makefile`
+	@rm -rf `ls | grep -v -e Makefile -e KNOWN_FAILURE`

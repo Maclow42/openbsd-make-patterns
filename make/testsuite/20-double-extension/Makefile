@@ -6,11 +6,11 @@
 all: file.tar.gz
 
 %.tar.gz: %.tar
-	@cp $? $@
+	@cp $< $@
 	@echo " compressed" >> $@
 
 %.tar: %.in
-	@cp $? $@
+	@cp $< $@
 	@echo " archived" >> $@
 
 # ========== INPUT FILES ==========
@@ -19,14 +19,14 @@ file.in:
 
 # ========== VALIDATION RULES ==========
 test:
-	@if [ -f file.tar.gz ]; then \
-		cat file.tar.gz | grep "Test passed" > /dev/null && \
-		cat file.tar.gz | grep "archived" > /dev/null && \
-		cat file.tar.gz | grep "compressed" > /dev/null && \
-		echo "[OK]" || echo "[KO]"; \
-	else \
-		echo "[KO]"; \
-	fi
+	@if [ -f file.tar.gz ] && grep -q "Test passed" file.tar.gz && \
+	    grep -q "archived" file.tar.gz && \
+	    grep -q "compressed" file.tar.gz; then \
+		echo "[OK]"; \
+		exit 0; \
+	fi; \
+	echo "[KO]"; \
+	exit 1
 
 clean:
-	@rm -f `ls | grep -v Makefile`
+	@rm -rf `ls | grep -v -e Makefile -e KNOWN_FAILURE`
