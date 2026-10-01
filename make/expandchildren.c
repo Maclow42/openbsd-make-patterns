@@ -219,7 +219,7 @@ ExpandChildren(LstNode ln, /* LstNode of child, so we can replace it */
 	if (DEBUG(PATTERN)) {
 		printf("\t - expand %s\n", cgn->name);
 	}
-	
+
 	/* First do variable expansion -- this takes precedence over wildcard
 	 * expansion. If the result contains wildcards, they'll be gotten to
 	 * later since the resulting words are tacked on to the end of the

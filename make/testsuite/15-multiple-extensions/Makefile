@@ -5,10 +5,10 @@
 all: file.o
 
 %.o: %.c
-	@echo "Compiled from: file.c" > file.o
+	@echo "Compiled from: $<" > $@
 
 %.o: %.cpp
-	@echo "Compiled from: file.cpp" > file.o
+	@echo "Compiled from: $<" > $@
 
 # ========== INPUT FILES ==========
 file.c:
@@ -24,4 +24,4 @@ test:
 	exit 1
 
 clean:
-	@rm -f `ls | grep -v Makefile`
+	@rm -rf `ls | grep -v -e Makefile -e KNOWN_FAILURE`

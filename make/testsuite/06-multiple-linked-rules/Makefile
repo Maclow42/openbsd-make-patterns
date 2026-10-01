@@ -15,7 +15,7 @@ file.in:
 	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
-test: all
+test:
 	@ok=0; \
 	if [ -f file.tmp ] && grep -q "Test passed." file.tmp; then \
 		ok=`expr $$ok + 1`; \
@@ -31,4 +31,4 @@ test: all
 	exit 1
 
 clean:
-	@rm -f `ls | grep -v Makefile`
+	@rm -rf `ls | grep -v -e Makefile -e KNOWN_FAILURE`
