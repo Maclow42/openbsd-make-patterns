@@ -22,9 +22,13 @@
 # Makefiles use $(MAKE) internally, which both bmake and GNU make set to the
 # binary that was actually invoked.
 #
+# The tested checkout is the one holding this script, or $PATTERNS_ROOT if
+# set: `./openbsd.sh test` runs main's copy of this script on the current
+# checkout that way, so it also works on branches without scripts/.
+#
 # Run this inside the VM (or via `./openbsd.sh test [...]` from the host).
 set -e
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="${PATTERNS_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 TREE="$ROOT"
 
 if [ "$1" = "--branch" ]; then
