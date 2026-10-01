@@ -1,6 +1,6 @@
 # 16-secondary-target
 # Test .SECONDARY special target to preserve intermediate files
-# SECONDARY doesnt not understand pattern rules
+# SECONDARY does not understand pattern rules
 
 # ========== TEST RULES ==========
 all: file.out
