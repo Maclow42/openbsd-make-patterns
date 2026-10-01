@@ -30,7 +30,7 @@ wt_git() {
 # disposable worktree -- this never touches your currently checked-out
 # branch, nor the source tree. Exit status: 0 if a new upstream snapshot
 # was committed, 1 if already up to date (not an error, just "nothing
-# changed").
+# changed"). The commit message names the OpenBSD source commit mirrored.
 update_upstream_branch() {
   require_src
 
@@ -53,7 +53,8 @@ update_upstream_branch() {
     if wt_git diff --cached --quiet; then
       exit 1
     fi
-    wt_git commit -q -m "Sync upstream make as of $(date +%Y-%m-%d)"
+    wt_git commit -q -m "Sync upstream make as of $(date +%Y-%m-%d)" \
+      -m "openbsd/src $(git -C "$SRC_ROOT" log -1 --format='%H (%cs)')"
   ) || rc=$?
 
   git worktree remove --force "$UPSTREAM_WORKTREE" >/dev/null 2>&1 || true
