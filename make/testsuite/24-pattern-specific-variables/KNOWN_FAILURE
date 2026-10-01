@@ -1,0 +1,1 @@
+pattern-specific variables are unsupported: %.out: FLAGS = ok is read as a dependency on FLAGS

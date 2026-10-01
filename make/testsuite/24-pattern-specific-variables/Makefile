@@ -6,7 +6,7 @@ all: file.out
 
 %.out: FLAGS = ok
 %.out: %.in
-	@if [ "$(FLAGS)" = "ok" ]; then cat file.in > file.out; else echo "failed" > $@; fi
+	@if [ "$(FLAGS)" = "ok" ]; then cat $< > $@; else echo "failed" > $@; fi
 
 # ========== INPUT FILES ==========
 file.in:
@@ -22,4 +22,4 @@ test:
 	exit 1
 
 clean:
-	@rm -f `ls | grep -v Makefile`
+	@rm -rf `ls | grep -v -e Makefile -e KNOWN_FAILURE`
