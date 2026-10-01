@@ -161,13 +161,29 @@ make test
 
 ### Test Categories
 
-- **01-04**: Basic pattern matching
-- **05-09**: Multiple targets and rules
-- **10-12**: Special operators and directory patterns
-- **13-14**: Pattern priority and automatic variables
-- **15-18**: Edge cases (empty stems, subdirectories)
-- **19-23**: Target types (secondary, intermediate, VPATH)
-- **24-26**: Advanced features (static patterns, GNU shell function)
+Every test follows GNU make's behavior and passes with `gmake`
+(`./scripts/test.sh gmake`). Each feature branch carries its own tests.
+
+Pattern rules (`feature/pattern-rules`):
+- **01-04**: Basic pattern rules (no prerequisite, explicit prerequisite,
+  explicit rule taking precedence, one rule per extension)
+- **05-09**: Independent and chained rules, one rule building several
+  targets, removal of intermediate files
+- **10-11**: Double-colon (`::`) pattern rules
+- **12-15**: `%` in a directory, redefined pattern rules (last one wins),
+  searching a file matching a pattern, choosing a rule by existing
+  prerequisites
+- **16-18**: `.SECONDARY`, `.INTERMEDIATE` and `.PRECIOUS` targets
+- **19-22**: `vpath`, double extensions, static pattern rules, `%` in the
+  middle of a name
+- **23-25**: Substitution references, pattern-specific variables, removal
+  order of intermediate files
+
+GNU `$(shell ...)` function (`feature/gnu-shell-func`):
+- **26-27**: Basic, nested and tricky `$(shell ...)` expansions
+
+Automatic variables (`feature/automatic-vars`):
+- **28**: `$^` (all prerequisites)
 
 ### Debug Mode
 
