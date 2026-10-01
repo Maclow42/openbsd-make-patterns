@@ -1,0 +1,26 @@
+# Build products
+*.o
+*.d
+*.core
+make/make
+make/generate
+make/*hashconsts.h
+make/*hashconsts.h.tmp
+
+# Testsuite: each test writes its outputs next to its Makefile, so
+# everything in a test directory is ignored but the Makefile and the
+# input files listed below. Add new input files to this list.
+make/testsuite/*/*
+!make/testsuite/*/Makefile
+!make/testsuite/14-patterned-file/file.in
+!make/testsuite/19-vpath-pattern/src/
+make/testsuite/19-vpath-pattern/src/*
+!make/testsuite/19-vpath-pattern/src/file.in
+make/testsuite/notes
+
+# Local files
+.vscode/
+diffs/
+*.diff
+*.orig
+name
