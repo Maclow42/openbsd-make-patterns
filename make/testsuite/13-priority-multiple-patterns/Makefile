@@ -1,7 +1,7 @@
 # 13-priority-multiple-patterns
 # Test priority when multiple pattern rules match
-# GNU Make: last rule wins
-# OpenBSD Make: first rule wins
+# A pattern rule with the same target and prerequisites as an existing
+# one replaces it, as in GNU make: the last rule wins.
 
 # ========== TEST RULES ==========
 all: file.out
@@ -14,7 +14,7 @@ all: file.out
 
 # ========== VALIDATION RULES ==========
 test:
-	@if [ -f file.out ] && grep -q "First rule" file.out; then \
+	@if [ -f file.out ] && grep -q "Second rule" file.out; then \
 		echo "[OK]"; \
 		exit 0; \
 	fi; \
