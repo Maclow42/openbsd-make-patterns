@@ -3,8 +3,11 @@
 # your uncommitted work in progress) and the official OpenBSD make source --
 # i.e. real a/ b/ paths, blob hashes, rename detection, etc.
 #
-# Must be run from the HOST (Debian): see scripts/lib.sh. Never switches you
-# off your current branch.
+# upstream is the OpenBSD source tree at $SRC_ROOT as currently checked out:
+# this script does not pull it, `sync-upstream.sh` does.
+#
+# See scripts/lib.sh for $SRC_ROOT. Never switches you off your current
+# branch.
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
