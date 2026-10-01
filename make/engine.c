@@ -400,7 +400,7 @@ Make_DoAllVar(GNode *gn)
 			Buf_AddSpace(&allsrc);
 			Buf_AddString(&allsrc, target);
 		}
-		
+
 		/* MODIFIEDSRC : all prerequisites, excluding .USE nodes
 		 * This matches GNU make's $^ behavior */
 		if ((child->type & OP_USE) == 0) {
