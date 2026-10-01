@@ -1,0 +1,1 @@
+.PHONY targets go through pattern rules: % builds a file named phony
