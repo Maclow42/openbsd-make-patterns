@@ -1,0 +1,1 @@
+static pattern rules are unsupported: %.out: is read as a target

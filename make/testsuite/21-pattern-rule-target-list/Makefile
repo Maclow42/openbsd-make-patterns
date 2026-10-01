@@ -1,5 +1,5 @@
-# 21-static-pattern-rule
-# Test static pattern rules
+# 21-pattern-rule-target-list
+# Test one pattern rule building every target of a list
 
 # ========== TEST RULES ==========
 OUTPUTS = file1.out file2.out
@@ -7,7 +7,7 @@ OUTPUTS = file1.out file2.out
 all: $(OUTPUTS)
 
 %.out: %.in
-	@cat $? > $@
+	@cat $< > $@
 
 # ========== INPUT FILES ==========
 file1.in:
@@ -33,4 +33,4 @@ test:
 	exit 1
 
 clean:
-	@rm -f `ls | grep -v Makefile`
+	@rm -rf `ls | grep -v -e Makefile -e KNOWN_FAILURE`

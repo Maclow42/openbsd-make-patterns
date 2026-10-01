@@ -469,7 +469,7 @@ Targ_RemoveAllTmpTargets(void)
 	/* Tmp children are only created by pattern rules. */
 	if (Array_IsEmpty(&patterns))
 		return;
-	
+
 	if (DEBUG(PATTERN))
 		printf("Removing all temporary targets...\n");
 
@@ -499,7 +499,7 @@ expand_children_from_pattern(GNode *gn)
 
 		/* Replace all % pattern of matching node with parent
 		 * node and add it to the parent children list. */
-		Targ_BuildFromPattern(gn, matching, expanded, 
+		Targ_BuildFromPattern(gn, matching, expanded,
 			strlen(expanded));
 
 		free(expanded);

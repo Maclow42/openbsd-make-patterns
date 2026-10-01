@@ -26,4 +26,4 @@ test:
 	exit 1
 
 clean:
-	@rm -rf `ls | grep -vE "(Makefile|src)"`
+	@rm -rf `ls | grep -v -e Makefile -e KNOWN_FAILURE -e src`
