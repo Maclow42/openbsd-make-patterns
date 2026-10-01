@@ -302,7 +302,7 @@ git merge --no-ff feature/pattern-rules
 ./scripts/test.sh
 git checkout main
 git merge --ff-only integration/all-features
-git push origin main integration/all-features feature/pattern-rules
+git push origin main integration/all-features feature/pattern-rules upstream
 ```
 
 When a test passes on its feature branch but fails on the integration
@@ -310,7 +310,8 @@ branch, two features interact: fix it before moving `main`. If
 `--ff-only` refuses, `main` got a commit of its own: merge `main` into the
 integration branch first.
 
-Tooling changes follow the same path from `tooling/test-branch`.
+Tooling changes follow the same path from `tooling/test-branch`, pushed
+too (`git push origin tooling/test-branch`).
 
 ### Creating a feature
 
@@ -338,7 +339,9 @@ PATTERNS_ROOT=$PWD sh /tmp/test.sh # main's copy, see Requirements
 ```
 
 then integrate as usual. The `upstream` branch is built in a disposable
-worktree and never edited by hand.
+worktree and never edited by hand; each of its commits names the
+openbsd/src commit it mirrors. Push it along with the branches, so that
+the patch of each feature can be rebuilt from a clone.
 
 ### Sending a feature upstream
 
