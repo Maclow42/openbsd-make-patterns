@@ -348,6 +348,7 @@ ParseDoOp(GNode **gnp, unsigned int op)
 	}
 	/* Preserve possible special flags already applied to the operator */
 	gn->type |= op;
+	may_register_as_pattern(gn);
 	return 1;
 }
 

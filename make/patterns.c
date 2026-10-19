@@ -51,13 +51,23 @@
 #include "patterns.h"
 #include "garray.h"
 
-static struct growableArray patterns;
+/* A registered pattern rule, with its '%' split precomputed. */
+struct pattern {
+	GNode *gn;
+	size_t prefix_len;	/* length of the name before '%' */
+	const char *suffix;	/* name after '%' */
+	size_t suffix_len;
+};
+
+static struct pattern *patterns;
+static size_t npatterns, maxpatterns;
 
 static GNode *
 Targ_CreateNodeFromPattern(GNode *, const char *, const char *);
 
 static void
-Targ_BuildChildFromPatternParent(GNode *, GNode *, char *, size_t);
+Targ_BuildChildFromPatternParent(GNode *, GNode *, GNode *, const char *,
+    size_t);
 
 static void expand_pattern(const char *, size_t ,
 	const char *, size_t, char**, char**);
@@ -71,21 +81,42 @@ is_pattern(const GNode *gn)
 	return strchr(gn->name, '%') != NULL;
 }
 
+/*
+ * Called on each target of a dependency line: only targets of a rule
+ * are patterns, a '%' prerequisite is not.
+ */
 void
 may_register_as_pattern(GNode *gn)
 {
-	if (!is_pattern(gn)) {
-		gn->is_tmp = false;
+	struct pattern *pat;
+	const char *percent;
+	size_t i;
+
+	percent = strchr(gn->name, '%');
+	if (percent == NULL)
 		return;
+
+	for (i = 0; i != npatterns; i++)
+		if (patterns[i].gn == gn)
+			return;
+
+	if (npatterns == maxpatterns) {
+		maxpatterns *= 2;
+		patterns = ereallocarray(patterns, maxpatterns,
+		    sizeof(*patterns));
 	}
-	gn->is_tmp = true;
-	Array_AtEnd(&patterns, gn);
+	pat = &patterns[npatterns++];
+	pat->gn = gn;
+	pat->prefix_len = percent - gn->name;
+	pat->suffix = percent + 1;
+	pat->suffix_len = strlen(pat->suffix);
 }
 
 void
 Pattern_Init(void)
 {
-	Array_Init(&patterns, 32);
+	maxpatterns = 32;
+	patterns = ereallocarray(NULL, maxpatterns, sizeof(*patterns));
 }
 
 /*
@@ -102,7 +133,7 @@ find_file_hash_with_pattern(struct ohash *h, const char *pattern)
 
 	for (entry = ohash_first(h, &search); entry != NULL;
 	    entry = ohash_next(h, &search)) {
-		if (match_pattern(entry, pattern, NULL)) {
+		if (match_pattern(entry, pattern)) {
 			if (DEBUG(PATTERN))
 				printf("find_file_hash_with_pattern: "
 				    "Matched file: %s\n",
@@ -184,16 +215,17 @@ Targ_CopyCommands(GNode *dest, GNode *src)
 /*-
  *-----------------------------------------------------------------------
  * Targ_CreateNodeFromPattern --
- *	Create a new GNode from a pattern node by expanding the pattern
- *	with pattern_value. It only creates the node and copies commands,
- *	it does not link it to any parent or create its children.
+ *	Find the node named expanded_name, or create it if it does not
+ *	exist yet. A created node remembers rule_gn, the pattern rule
+ *	that required it. It is neither linked to any parent nor given
+ *	children or commands: that happens when make examines it.
  *
  * Returns:
- *	The newly created GNode, or NULL on error.
+ *	The existing or newly created GNode.
  *-----------------------------------------------------------------------
  */
 static GNode *
-Targ_CreateNodeFromPattern(GNode *pattern_gn, const char *expanded_name,
+Targ_CreateNodeFromPattern(GNode *rule_gn, const char *expanded_name,
     const char *expanded_ename)
 {
 	GNode *new_gn;
@@ -201,37 +233,44 @@ Targ_CreateNodeFromPattern(GNode *pattern_gn, const char *expanded_name,
 	uint32_t hv;
 	struct ohash *h;
 
-	if (DEBUG(PATTERN))
-		printf("Building children %s (new name: %.*s)\n",
-		    pattern_gn->name,
-		    (int)(expanded_ename - expanded_name), expanded_name);
-
-	/* Create new GNode with expanded name. */
-	new_gn = Targ_NewGNi(expanded_name, expanded_ename);
-	new_gn->expanded_from = pattern_gn;
-	new_gn->is_tmp = true;
-
 	/* Search its place in ohash and insert it. */
 	hv = ohash_interval(expanded_name, &expanded_ename);
 	h = targets_hash();
 	slot = ohash_lookup_interval(h, expanded_name, expanded_ename, hv);
-	ohash_insert(h, slot, new_gn);
+	new_gn = ohash_find(h, slot);
+	
+	/* If the node already exists, return it. */
+	if (new_gn != NULL)
+	{
+		if (DEBUG(PATTERN))
+			printf("Node %.*s already exists, returning it\n",
+			    (int)(expanded_ename - expanded_name), expanded_name);
+		return new_gn;
+	}
 
-	/* Copy commands from pattern_gn to new_gn. */
-	Targ_CopyCommands(new_gn, pattern_gn);
+	if (DEBUG(PATTERN))
+		printf("Creating node %.*s from %s\n",
+		    (int)(expanded_ename - expanded_name), expanded_name,
+		    rule_gn->name);
+	
+	/* Else: create a new node and insert it into the hash. */
+	new_gn = Targ_NewGNi(expanded_name, expanded_ename);
+	new_gn->expanded_from = rule_gn;
+	ohash_insert(h, slot, new_gn);
 
 	return new_gn;
 }
 
 /*-
  * Targ_BuildChildFromPatternParent --
- *	Create a child node by expanding a pattern child with the given
- *	pattern value, then link it to parent_gn. If the child already
- *	exists, reuse it. Recursively builds the child's dependencies.
+ *	Expand a prerequisite of the pattern rule rule_gn with the given
+ *	pattern value, then link the resulting node to parent_gn. Its own
+ *	prerequisites are found when make examines it, like any other
+ *	node without children.
  */
 static void
-Targ_BuildChildFromPatternParent(GNode *parent_gn, GNode *child,
-    char *pattern_value, size_t pattern_value_len)
+Targ_BuildChildFromPatternParent(GNode *parent_gn, GNode *rule_gn,
+    GNode *child, const char *pattern_value, size_t pattern_value_len)
 {
 	GNode *new_child;
 	char *new_name;
@@ -241,29 +280,7 @@ Targ_BuildChildFromPatternParent(GNode *parent_gn, GNode *child,
 	expand_pattern(child->name,
 	    strlen(child->name), pattern_value, pattern_value_len,
 	    	&new_name, &new_ename);
-
-	/* Search for a GNode existing with this name */
-	new_child = Targ_FindNode(new_name, TARG_NOCREATE);
-
-	if (new_child == NULL) {
-		/* Create new node from pattern. */
-		new_child = Targ_CreateNodeFromPattern(child, new_name,
-		    new_ename);
-
-		/* Recursively build and link all children from the pattern. */
-		Targ_BuildFromPattern(new_child, child, pattern_value,
-		pattern_value_len);
-
-		/* If no children and no commands, then this is a final
-		 * target. A final target is not temporary so we need to
-		 * prevent its deletion.
-		 * Useful case: cf test 14-patterned-file */
-		if (Lst_IsEmpty(&new_child->children) &&
-			Lst_IsEmpty(&new_child->commands)) {
-			new_child->is_tmp = false;
-		}
-	}
-
+	new_child = Targ_CreateNodeFromPattern(rule_gn, new_name, new_ename);
 	free(new_name);
 
 	/* Link new_child to parent_gn and vice-versa. */
@@ -276,14 +293,13 @@ Targ_BuildChildFromPatternParent(GNode *parent_gn, GNode *child,
 /*-
  *-----------------------------------------------------------------------
  * Targ_BuildFromPattern --
- *	Build a new GNode from a pattern node by expanding the pattern
- *	with pattern_value. This function creates the new node, builds
- *	its children recursively, and links it to parent_gn.
+ *	Give parent_gn the prerequisites and commands of the pattern
+ *	rule pattern_gn, expanding each '%' with pattern_value.
  *-----------------------------------------------------------------------
  */
 void
-Targ_BuildFromPattern(GNode *parent_gn, GNode *pattern_gn, char *pattern_value,
-    size_t pattern_value_len)
+Targ_BuildFromPattern(GNode *parent_gn, GNode *pattern_gn,
+    const char *pattern_value, size_t pattern_value_len)
 {
 	LstNode ln;
 	GNode *child;
@@ -301,7 +317,7 @@ Targ_BuildFromPattern(GNode *parent_gn, GNode *pattern_gn, char *pattern_value,
 	for (ln = Lst_First(&pattern_gn->children); ln != NULL;
 	    ln = Lst_Adv(ln)) {
 		child = Lst_Datum(ln);
-		Targ_BuildChildFromPatternParent(parent_gn, child,
+		Targ_BuildChildFromPatternParent(parent_gn, pattern_gn, child,
 		    pattern_value, pattern_value_len);
 	}
 
@@ -323,30 +339,19 @@ Targ_BuildFromPattern(GNode *parent_gn, GNode *pattern_gn, char *pattern_value,
  *-----------------------------------------------------------------------
  * match_pattern --
  *	Match a name against a pattern with a single '%' wildcard.
- *	The pattern is split into prefix and suffix around the '%'.
- *	Example: "lib%.a" matches "libfoo.a" with expanded = "foo"
- *
- *	If a match is found, return true and optionally set *expanded
- *	to the portion of name that matched the '%' wildcard.
+ *	Example: "lib%.a" matches "libfoo.a".
  *
  * Returns:
  *	true if pattern matches name, false otherwise.
- *
- * Side Effects:
- *	If expanded is non-NULL and pattern matches, *expanded is set
- *	to a newly allocated string containing the wildcard match.
- *	Caller must free *expanded when done.
  *-----------------------------------------------------------------------
  */
 bool
-match_pattern(const char *name, const char *pattern, char **expanded)
+match_pattern(const char *name, const char *pattern)
 {
 	const char *percent;
-	const char *name_ptr;
 	size_t prefix_len;
 	size_t suffix_len;
 	size_t name_len;
-	size_t stem_len;
 
 	/* Find the '%' in pattern. */
 	percent = strchr(pattern, '%');
@@ -360,77 +365,65 @@ match_pattern(const char *name, const char *pattern, char **expanded)
 	suffix_len = strlen(percent + 1);
 	name_len = strlen(name);
 
-	/* Check if name is long enough to contain prefix and suffix. */
-	if (name_len < prefix_len + suffix_len)
-		return false;
-
-	/* Check prefix matches. */
-	if (prefix_len > 0 && strncmp(name, pattern, prefix_len) != 0)
-		return false;
-
-	/* Check suffix matches. */
-	if (suffix_len > 0) {
-		name_ptr = name + name_len - suffix_len;
-		if (strcmp(name_ptr, percent + 1) != 0)
-			return false;
-	}
-
-	/* Pattern matches. Extract stem if requested. */
-	if (expanded != NULL) {
-		stem_len = name_len - prefix_len - suffix_len;
-		/* Note: stem_len can be 0 for patterns like "lib%.a" matching
-		 * "lib.a", which is valid and should return empty string. */
-		*expanded = strndup(name + prefix_len, stem_len);
-		if (*expanded == NULL) {
-			Fatal("match_pattern: out of memory");
-		}
-	}
-
-	return true;
+	return name_len >= prefix_len + suffix_len &&
+	    memcmp(name, pattern, prefix_len) == 0 &&
+	    memcmp(name + name_len - suffix_len, percent + 1, suffix_len) == 0;
 }
 
 /*-
  *-----------------------------------------------------------------------
  * Targ_FindPatternMatchingNode --
- *	Take a name as parameter and search for all ->is_pattern targets
- *	whose ->name match with the parameter.
+ *	Search the pattern rules for the first one whose target matches
+ *	the name of gnode_from. gnode_from itself is skipped (a target
+ *	like "file-%.in" matches its own pattern), and so is the rule
+ *	that required it, so that a rule like "%: %.c" does not chain
+ *	on itself.
  *
  * Returns:
  *	The matching GNode, or NULL if no match found.
+ *	On a match, *stem and *stem_len are set to the part of the name
+ *	that matched the '%' (*stem points into gnode_from->name, and
+ *	*stem_len can be 0, e.g. "lib%.a" matching "lib.a").
  *-----------------------------------------------------------------------
  */
 GNode *
-Targ_FindPatternMatchingNode(const GNode *gnode_from, char **expanded)
+Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
+    size_t *stem_len)
 {
 	const char *name = gnode_from->name;
-	GNode *gn;
-	bool is_parent;
-	char *temp_expanded;
+	const struct pattern *pat;
+	size_t name_len;
 	size_t i;
+
 	/* If no pattern GNode exists we do not try to search one */
-	if (Array_IsEmpty(&patterns))
+	if (npatterns == 0)
 		return NULL;
 
+	name_len = strlen(name);
+
 	/* Iterate over each pattern, looking for a match */
-	for (i = 0; i != patterns.n; i++) {
-		gn = patterns.a[i];
-		if (match_pattern(name, gn->name, &temp_expanded)) {
+	for (i = 0; i != npatterns; i++) {
+		pat = &patterns[i];
 
-			/* Check if gn is not a parent of name. */
-			is_parent = (gnode_from->expanded_from == gn);
+		/* Prevent matching the node itself or its expanded form */
+		if (pat->gn == gnode_from ||
+		    pat->gn == gnode_from->expanded_from)
+			continue;
 
-			if (!is_parent) {
-				/* Transfer ownership to caller */
-				if (expanded != NULL)
-					*expanded = temp_expanded;
-				else
-					free(temp_expanded);
-				return gn;
-			}
+		/* Check if the name is long enough to match the pattern. */
+		if (name_len < pat->prefix_len + pat->suffix_len)
+			continue;
 
-			/* Pattern matched but is a parent */
-			free(temp_expanded);
-		}
+		/* Check if the prefix matches. */
+		if (memcmp(name, pat->gn->name, pat->prefix_len) != 0)
+			continue;
+		if (memcmp(name + name_len - pat->suffix_len, pat->suffix,
+		    pat->suffix_len) != 0)
+			continue;
+
+		*stem = name + pat->prefix_len;
+		*stem_len = name_len - pat->prefix_len - pat->suffix_len;
+		return pat->gn;
 	}
 	return NULL;
 }
@@ -467,7 +460,7 @@ Targ_RemoveAllTmpTargets(void)
 	struct ohash *h;
 
 	/* Tmp children are only created by pattern rules. */
-	if (Array_IsEmpty(&patterns))
+	if (npatterns == 0)
 		return;
 
 	if (DEBUG(PATTERN))
@@ -483,26 +476,31 @@ bool
 expand_children_from_pattern(GNode *gn)
 {
 	GNode *matching;
-	char *expanded = NULL;
+	const char *stem;
+	size_t stem_len;
 
 	if (DEBUG(PATTERN)) {
 		printf("\t\t => No children found for \"%s\"\n", gn->name);
 		printf("\t\t => Searching for matching pattern targets...\n");
 	}
 
-	matching = Targ_FindPatternMatchingNode(gn, &expanded);
+	matching = Targ_FindPatternMatchingNode(gn, &stem, &stem_len);
 	if (matching != NULL) {
-		gn->is_tmp = false;
 		if (DEBUG(PATTERN))
 			printf("\t\t => Matching pattern target found: %s\n",
 			    matching->name);
 
 		/* Replace all % pattern of matching node with parent
 		 * node and add it to the parent children list. */
-		Targ_BuildFromPattern(gn, matching, expanded,
-			strlen(expanded));
+		Targ_BuildFromPattern(gn, matching, stem, stem_len);
 
-		free(expanded);
+		/* A node created from a pattern and built by a pattern rule
+		 * is an intermediate file. If the rule gives it nothing to
+		 * do, then this is a final target, which must not be
+		 * deleted. */
+		gn->is_tmp = gn->expanded_from != NULL &&
+		    (!Lst_IsEmpty(&gn->children) ||
+		    !Lst_IsEmpty(&gn->commands));
 
 		if (DEBUG(PATTERN))
 			printf("All children of %s have been built.\n\n",
