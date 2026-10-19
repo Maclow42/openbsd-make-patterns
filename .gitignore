@@ -11,13 +11,13 @@ make/*hashconsts.h.tmp
 # everything in a test directory is ignored but the Makefile, the
 # KNOWN_FAILURE marker and the input files listed below. Add new input
 # files to this list.
-make/testsuite/*/*
-!make/testsuite/*/Makefile
-!make/testsuite/*/KNOWN_FAILURE
-!make/testsuite/14-patterned-file/file.in
-!make/testsuite/19-vpath-pattern/src/
-make/testsuite/19-vpath-pattern/src/*
-!make/testsuite/19-vpath-pattern/src/file.in
+testsuite/*/*
+!testsuite/*/Makefile
+!testsuite/*/KNOWN_FAILURE
+!testsuite/14-patterned-file/file.in
+!testsuite/19-vpath-pattern/src/
+testsuite/19-vpath-pattern/src/*
+!testsuite/19-vpath-pattern/src/file.in
 
 # Patches: scripts/diff-upstream.sh writes to diffs/
 diffs/

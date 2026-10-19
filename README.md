@@ -170,8 +170,8 @@ This produces `make/make`.
 
 ## Testing
 
-The testsuite lives in `make/testsuite/`, one directory per test, run by
-`make/testsuite/Makefile`. Each feature branch carries the tests of its
+The testsuite lives in `testsuite/`, one directory per test, run by
+`testsuite/Makefile`. Each feature branch carries the tests of its
 feature.
 
 ```sh
@@ -210,14 +210,14 @@ other failure fails the run.
 To run a single test:
 
 ```sh
-cd make/testsuite/01-basic-pattern
-../../make clean all
-../../make test
+cd testsuite/01-basic-pattern
+../../make/make clean all
+../../make/make test
 ```
 
 ### Adding a test
 
-Create `make/testsuite/NN-name/Makefile` on the branch of the feature it
+Create `testsuite/NN-name/Makefile` on the branch of the feature it
 tests, following the existing tests:
 
 - `all` builds, `test` prints `[OK]` or `[KO]` and exits with status 0 or
@@ -346,7 +346,7 @@ the patch of each feature can be rebuilt from a clone.
 ### Sending a feature upstream
 
 ```sh
-git diff upstream feature/pattern-rules -- make/ ':!make/testsuite'
+git diff upstream feature/pattern-rules -- make/
 ```
 
 gives the patch of one feature alone. `./scripts/diff-upstream.sh`, on a
