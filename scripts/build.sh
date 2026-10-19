@@ -5,8 +5,10 @@
 # set: that way, main's copy of this script also builds branches without
 # scripts/.
 #
+# Builds with $MAKE_JOBS parallel jobs (default: 8).
+#
 # Run this on OpenBSD.
 set -e
 ROOT="${PATTERNS_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 cd "$ROOT/make"
-make "$@"
+make -j"${MAKE_JOBS:-8}" "$@"

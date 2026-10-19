@@ -163,10 +163,11 @@ PATTERNS_ROOT=$PWD sh /tmp/test.sh [arguments]
 ## Building
 
 ```sh
-./scripts/build.sh       # or: cd make && make
+./scripts/build.sh       # or: cd make && make -j8
 ```
 
-This produces `make/make`.
+This produces `make/make`. `build.sh` and `test.sh` build with 8 parallel
+jobs; set `MAKE_JOBS` to change that.
 
 ## Testing
 
