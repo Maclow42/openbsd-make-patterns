@@ -48,8 +48,8 @@ if [ "$1" = "--branch" ]; then
     TREE="$(mktemp -d /tmp/make-test-wt.XXXXXX)"
     trap 'git -C "$ROOT" worktree remove --force "$TREE" >/dev/null 2>&1 || rm -rf "$TREE"; git -C "$ROOT" worktree prune' EXIT
     git -C "$ROOT" worktree add -q --detach "$TREE" "$REF"
-    [ -d "$TREE/make/testsuite" ] ||
-        { echo "error: '$REF' has no make/testsuite to run" >&2; exit 1; }
+    [ -d "$TREE/testsuite" ] || [ -d "$TREE/make/testsuite" ] ||
+        { echo "error: '$REF' has no testsuite to run" >&2; exit 1; }
     echo "==> Testing $REF ($(git -C "$TREE" log -1 --format='%h %s'))"
 fi
 
@@ -111,9 +111,14 @@ run_regress() {
     [ "$failed" -eq 0 ]
 }
 
+# The testsuite lived in make/testsuite/ before moving to testsuite/: look
+# in both, so that --branch also tests older refs.
+SUITE="$TREE/testsuite"
+[ -d "$SUITE" ] || SUITE="$TREE/make/testsuite"
+
 status=0
 echo "==> Testing with: $MAKE_BIN"
-(cd "$TREE/make/testsuite" && "$MAKE_BIN" test) || status=1
+(cd "$SUITE" && "$MAKE_BIN" test) || status=1
 if [ "$WHICH" != gmake ]; then
     run_regress || status=1
 fi
