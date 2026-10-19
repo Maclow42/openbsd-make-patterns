@@ -4,7 +4,8 @@
 # break anything OpenBSD relies on.
 #
 # Usage: scripts/test.sh [--branch REF] [mine|system|gmake|custom[:/path/to/make]]
-#   mine    (default) -- build then test with this fork's own make/make
+#   mine    (default) -- build then test with this fork's own make/make,
+#                           built with $MAKE_JOBS parallel jobs (default: 8)
 #   system             -- test with the system `make` found in $PATH (bmake)
 #   gmake               -- test with GNU make (`gmake`), e.g. as a reference
 #                           for how real pattern rules should behave
@@ -57,7 +58,7 @@ WHICH="${1:-mine}"
 
 case "$WHICH" in
 mine)
-    (cd "$TREE/make" && make)
+    (cd "$TREE/make" && make -j"${MAKE_JOBS:-8}")
     MAKE_BIN="$TREE/make/make"
     ;;
 system)
