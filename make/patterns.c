@@ -500,7 +500,7 @@ Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 	 * was created, by its own commands or by those of a target made
 	 * by the same rule; one skipped or not made yet has no file. */
 	if (!is_tmp_target(gn) || !gn->tmp_needed ||
-	    !has_been_built(gn)) {
+	    !has_been_built(gn) || Targ_Precious(gn)) {
 		return;
 	}
 
@@ -575,6 +575,9 @@ expand_children_from_pattern(GNode *gn)
 		gn->is_tmp = gn->expanded_from != NULL &&
 		    (!Lst_IsEmpty(&gn->children) ||
 		    !Lst_IsEmpty(&gn->commands));
+
+		/* gn herits PRECIOUS from the pattern rule */
+		gn->type |= matching->type & OP_PRECIOUS;
 
 		if (DEBUG(PATTERN))
 			printf("All children of %s have been built.\n\n",
