@@ -8,23 +8,23 @@ FILES = f1 f2 f3 f4 f5 f6
 all:
 	@$(MAKE) -s -j4 build
 
-build: $(FILES:=.html)
+build: $(FILES:=.out)
 
-%.html: %.tmp
+%.out: %.tmp
 	@cp $< $@
 
-%.tmp: %.md
+%.tmp: %.in
 	@cp $< $@
 
 # ========== INPUT FILES ==========
-$(FILES:=.md):
+$(FILES:=.in):
 	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
 test:
 	@ok=0; \
 	for f in $(FILES); do \
-		if [ -f $$f.html ] && grep -q "Test passed." $$f.html && \
+		if [ -f $$f.out ] && grep -q "Test passed." $$f.out && \
 		    [ ! -f $$f.tmp ]; then \
 			ok=`expr $$ok + 1`; \
 		fi; \

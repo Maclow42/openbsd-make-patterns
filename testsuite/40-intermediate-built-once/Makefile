@@ -3,24 +3,24 @@
 # commands of an intermediate file run a single time
 
 # ========== TEST RULES ==========
-all: doc.html
+all: file.out
 
-%.html: %.tmp
+%.out: %.tmp
 	@cp $< $@
 	@echo $@ >> builds
 
-%.tmp: %.md
+%.tmp: %.in
 	@cp $< $@
 	@echo $@ >> builds
 
 # ========== INPUT FILES ==========
-doc.md:
+file.in:
 	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
 test:
-	@if [ -f doc.html ] && grep -q "Test passed." doc.html && \
-	    [ "`cat builds | tr '\n' ' '`" = "doc.tmp doc.html " ]; then \
+	@if [ -f file.out ] && grep -q "Test passed." file.out && \
+	    [ "`cat builds | tr '\n' ' '`" = "file.tmp file.out " ]; then \
 		echo "[OK]"; \
 		exit 0; \
 	fi; \

@@ -8,24 +8,24 @@ all:
 	@cp builds builds.first
 	@$(MAKE) -s build > /dev/null 2>&1
 
-build: doc.html
+build: file.out
 
-%.html: %.tmp
+%.out: %.tmp
 	@cp $< $@
 	@echo $@ >> builds
 
-%.tmp: %.md
+%.tmp: %.in
 	@cp $< $@
 	@echo $@ >> builds
 
 # ========== INPUT FILES ==========
-doc.md:
+file.in:
 	@echo "Test passed." > $@
 
 # ========== VALIDATION RULES ==========
 test:
-	@if [ -f doc.html ] && grep -q "Test passed." doc.html && \
-	    [ ! -f doc.tmp ] && cmp -s builds builds.first; then \
+	@if [ -f file.out ] && grep -q "Test passed." file.out && \
+	    [ ! -f file.tmp ] && cmp -s builds builds.first; then \
 		echo "[OK]"; \
 		exit 0; \
 	fi; \
