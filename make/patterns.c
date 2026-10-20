@@ -537,6 +537,11 @@ expand_children_from_pattern(GNode *gn)
 	const char *stem;
 	size_t stem_len;
 
+	/* A target with commands already has its rule, so it does not need
+	 * to be expanded. */
+	if (!Lst_IsEmpty(&gn->commands))
+		return false;
+
 	if (DEBUG(PATTERN)) {
 		printf("\t\t => No children found for \"%s\"\n", gn->name);
 		printf("\t\t => Searching for matching pattern targets...\n");
