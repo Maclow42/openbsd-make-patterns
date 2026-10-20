@@ -155,6 +155,8 @@ struct GNode_ {
     const GNode *expanded_from;
     bool in_cycle;	/* cycle detection */
     bool is_tmp; 	/* true if the target is a temporary target */
+    bool tmp_skipped;	/* tmp target skipped because it is not needed */
+    bool tmp_needed;	/* tmp target needed even if it was skipped before */
 
     char name[1];	/* The target's name */
 };

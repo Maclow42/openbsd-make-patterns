@@ -84,6 +84,7 @@
 #include "extern.h"
 #include "lst.h"
 #include "timestamp.h"
+#include "patterns.h"
 #include "main.h"
 #include "make.h"
 #include "pathnames.h"
@@ -468,6 +469,16 @@ Make_OODate(GNode *gn)
 				printf(".EXEC node...");
 		}
 		oodate = true;
+	} else if (Targ_SkipTmp(gn)) {
+		/*
+		 * A missing temporary target is only made if a parent
+		 * needs it. Targ_SkipTmp marks gn as skipped and gives
+		 * it the modification time of its youngest child
+		 * for its parents to compare against.
+		 */
+		if (DEBUG(MAKE))
+			printf("non-existent temporary target...");
+		oodate = false;
 	} else if (is_strictly_before(gn->mtime, gn->youngest->mtime) ||
 	   (gn == gn->youngest &&
 	    (is_out_of_date(gn->mtime) || (gn->type & OP_DOUBLEDEP)))) {

@@ -80,6 +80,7 @@
 #include "targ.h"
 #include "targequiv.h"
 #include "garray.h"
+#include "patterns.h"
 #include "memory.h"
 
 /* what gets added each time. Kept as one static array so that it doesn't
@@ -107,6 +108,7 @@ static void print_unlink_cycle(struct growableArray *, GNode *);
 static void break_and_print_cycles(Lst);
 static GNode *find_cycle(Lst, struct growableArray *);
 
+static bool wait_for_tmp_children(GNode *);
 static bool try_to_make_node(GNode *);
 static void add_targets_to_make(Lst);
 
@@ -271,6 +273,23 @@ Make_Update(GNode *cgn)	/* the child node */
 	/* SIB: this is where I should mark the build as finished */
 	for (ln = Lst_First(&cgn->parents); ln != NULL; ln = Lst_Adv(ln)) {
 		pgn = Lst_Datum(ln);
+		/* A temporary target made after it was skipped was counted
+		 * already: it only wakes up the parents waiting for it. */
+		if (cgn->tmp_needed) {
+			if (pgn->must_make && pgn->built_status == UNKNOWN) {
+				if (DEBUG(MAKE))
+					printf("%s(waiting) ", pgn->name);
+				if (cgn->built_status == REBUILT)
+					pgn->child_rebuilt = true;
+				(void)Make_TimeStamp(pgn, cgn);
+				if (pgn->children_left == 0) {
+					if (DEBUG(MAKE))
+						printf("QUEUING ");
+					Array_PushNew(&to_build, pgn);
+				}
+			}
+			continue;
+		}
 		/* SIB: there should be a siblings loop there */
 		pgn->children_left--;
 		if (pgn->must_make) {
@@ -300,6 +319,25 @@ Make_Update(GNode *cgn)	/* the child node */
 	if (DEBUG(MAKE))
 		printf("\n");
 	requeue_successors(cgn);
+}
+
+/* gn is out of date: it needs the temporary targets it skipped so far.
+ * Make_Update requeues gn once they are made. */
+static bool
+wait_for_tmp_children(GNode *gn)
+{
+	LstNode ln;
+	GNode *cgn;
+	bool waiting = false;
+
+	for (ln = Lst_First(&gn->children); ln != NULL; ln = Lst_Adv(ln)) {
+		cgn = Lst_Datum(ln);
+		if (Targ_UnskipTmp(cgn))
+			Array_Push(&to_build, cgn);
+		if (cgn->tmp_needed && !has_been_built(cgn))
+			waiting = true;
+	}
+	return waiting;
 }
 
 static bool
@@ -374,6 +412,12 @@ try_to_make_node(GNode *gn)
 			printf("out-of-date\n");
 		if (queryFlag)
 			return true;
+		if (wait_for_tmp_children(gn)) {
+			if (DEBUG(MAKE))
+				printf("%s: waiting for temporary targets\n",
+				    gn->name);
+			return false;
+		}
 		/* SIB: this is where commands should get prepared */
 		Make_DoAllVar(gn);
 		if (node_find_valid_commands(gn)) {

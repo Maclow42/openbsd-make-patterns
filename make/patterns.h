@@ -36,5 +36,7 @@ extern bool match_pattern(const char *, const char *);
 extern GNode *Targ_FindPatternMatchingNode(const GNode *, const char **,
     size_t *);
 extern void Targ_BuildFromPattern(GNode *, GNode *, const char *, size_t);
+extern bool Targ_SkipTmp(GNode *);
+extern bool Targ_UnskipTmp(GNode *);
 extern void Targ_RemoveAllTmpTargets(void);
 extern bool expand_children_from_pattern(GNode *);

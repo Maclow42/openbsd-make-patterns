@@ -48,6 +48,7 @@
 #include "targ.h"
 #include "memory.h"
 #include "str.h"
+#include "timestamp.h"
 #include "patterns.h"
 #include "garray.h"
 
@@ -428,13 +429,70 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 	return NULL;
 }
 
+/*-
+ *-----------------------------------------------------------------------
+ * Targ_SkipTmp --
+ *	As in GNU make, a missing temporary target is not made unless a
+ *	target that depends on it is out of date (see Targ_UnskipTmp).
+ *	Meanwhile, it takes the modification time of its youngest child,
+ *	so that its parents compare against its own prerequisites.
+ *
+ * Returns:
+ *	true if gn is skipped, and must be deemed up-to-date.
+ *-----------------------------------------------------------------------
+ */
+bool
+Targ_SkipTmp(GNode *gn)
+{
+	if (!gn->is_tmp || gn->tmp_needed || !is_out_of_date(gn->mtime))
+		return false;
+
+	if (DEBUG(PATTERN))
+		printf("Skipping missing temporary target %s\n", gn->name);
+
+	gn->tmp_skipped = true;
+	gn->mtime = gn->youngest->mtime;
+	return true;
+}
+
+/*-
+ *-----------------------------------------------------------------------
+ * Targ_UnskipTmp --
+ *	A parent of gn is out of date: if gn was skipped, it must be made
+ *	after all, and is examined again.
+ *
+ * Returns:
+ *	true if gn was skipped.
+ *-----------------------------------------------------------------------
+ */
+bool
+Targ_UnskipTmp(GNode *gn)
+{
+	if (!gn->tmp_skipped)
+		return false;
+
+	if (DEBUG(PATTERN))
+		printf("Temporary target %s needed after all\n", gn->name);
+
+	gn->tmp_skipped = false;
+	gn->tmp_needed = true;
+	gn->built_status = UNKNOWN;
+	return true;
+}
+
 static void
 Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 {
 	GNode *gn = child;
 	const char *file;
 
-	if (!gn->expanded_from || !gn->is_tmp) {
+	/* As in GNU make, only a temporary target this run created is
+	 * removed: one that existed already is kept, even if remade.
+	 * A missing one is always skipped first, so tmp_needed tells it
+	 * was created, by its own commands or by those of a target made
+	 * by the same rule; one skipped or not made yet has no file. */
+	if (!gn->expanded_from || !gn->is_tmp || !gn->tmp_needed ||
+	    !has_been_built(gn)) {
 		return;
 	}
 

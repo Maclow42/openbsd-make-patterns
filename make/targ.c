@@ -175,6 +175,8 @@ Targ_mk_node(const char *name, const char *ename,
 	gn->groupling = NULL;
 	gn->expanded_from = NULL;
 	gn->is_tmp = false;
+	gn->tmp_skipped = false;
+	gn->tmp_needed = false;
 
 #ifdef STATS_GN_CREATION
 	STAT_GN_COUNT++;

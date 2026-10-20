@@ -53,9 +53,11 @@
 #include "extern.h"
 #include "gnode.h"
 #include "timestamp.h"
+#include "patterns.h"
 #include "lst.h"
 
 static void CompatMake(void *, void *);
+static void CompatMakeTmp(void *, void *);
 
 /*-
  *-----------------------------------------------------------------------
@@ -144,6 +146,19 @@ CompatMake(void *gnp,	/* The node to make */
 		 * exit now to tell him/her "yes".  */
 		if (queryFlag)
 			exit(1);
+
+		/* The temporary targets skipped so far are needed now. */
+		sib = gn;
+		do {
+			Lst_ForEach(&sib->children, CompatMakeTmp, gn);
+			sib = sib->sibling;
+		} while (sib != gn);
+
+		if (gn->built_status == ABORTED) {
+			Error("Build for %s aborted", gn->name);
+			pgn->built_status = ABORTED;
+			return;
+		}
 
 		/* normally, we run the job, but if we can't find any
 		 * commands, we defer to siblings instead.
@@ -244,6 +259,14 @@ CompatMake(void *gnp,	/* The node to make */
 	default:
 		break;
 	}
+}
+
+/* Make a skipped temporary target, which its parent needs after all. */
+static void
+CompatMakeTmp(void *gnp, void *pgnp)
+{
+	if (Targ_UnskipTmp(gnp))
+		CompatMake(gnp, pgnp);
 }
 
 void
