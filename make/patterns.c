@@ -542,6 +542,9 @@ expand_children_from_pattern(GNode *gn)
 	if (!Lst_IsEmpty(&gn->commands))
 		return false;
 
+	if (gn->type & OP_PHONY)
+		return false;
+
 	if (DEBUG(PATTERN)) {
 		printf("\t\t => No children found for \"%s\"\n", gn->name);
 		printf("\t\t => Searching for matching pattern targets...\n");
