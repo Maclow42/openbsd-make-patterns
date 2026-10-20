@@ -62,6 +62,7 @@ struct pattern {
 
 static struct pattern *patterns;
 static size_t npatterns, maxpatterns;
+static bool tmp_made;	/* a temporary target was made after all */
 
 static GNode *
 Targ_CreateNodeFromPattern(GNode *, const char *, const char *);
@@ -429,6 +430,12 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 	return NULL;
 }
 
+static bool
+is_tmp_target(const GNode *gn)
+{
+	return gn->is_tmp || (gn->type & OP_INTERMEDIATE);
+}
+
 /*-
  *-----------------------------------------------------------------------
  * Targ_SkipTmp --
@@ -444,7 +451,7 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 bool
 Targ_SkipTmp(GNode *gn)
 {
-	if (!gn->is_tmp || gn->tmp_needed || !is_out_of_date(gn->mtime))
+	if (!is_tmp_target(gn) || gn->tmp_needed || !is_out_of_date(gn->mtime))
 		return false;
 
 	if (DEBUG(PATTERN))
@@ -476,6 +483,7 @@ Targ_UnskipTmp(GNode *gn)
 
 	gn->tmp_skipped = false;
 	gn->tmp_needed = true;
+	tmp_made = true;
 	gn->built_status = UNKNOWN;
 	return true;
 }
@@ -491,7 +499,7 @@ Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 	 * A missing one is always skipped first, so tmp_needed tells it
 	 * was created, by its own commands or by those of a target made
 	 * by the same rule; one skipped or not made yet has no file. */
-	if (!gn->expanded_from || !gn->is_tmp || !gn->tmp_needed ||
+	if (!is_tmp_target(gn) || !gn->tmp_needed ||
 	    !has_been_built(gn)) {
 		return;
 	}
@@ -503,7 +511,7 @@ Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 	if (eunlink(file) == 0) {
 		if (!Targ_Silent(gn))
 			printf("rm %s\n", file);
-		gn->is_tmp = false;
+		gn->tmp_needed = false;
 	} else {
 		fprintf(stderr, "*** couldn't delete %s: %s\n", file,
 		    strerror(errno));
@@ -517,8 +525,8 @@ Targ_RemoveAllTmpTargets(void)
 	unsigned int i;
 	struct ohash *h;
 
-	/* Tmp children are only created by pattern rules. */
-	if (npatterns == 0)
+	/* Only a temporary target made after all is removed. */
+	if (!tmp_made)
 		return;
 
 	if (DEBUG(PATTERN))
