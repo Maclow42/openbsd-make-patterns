@@ -376,8 +376,9 @@ match_pattern(const char *name, const char *pattern)
 /*-
  *-----------------------------------------------------------------------
  * Targ_FindPatternMatchingNode --
- *	Search the pattern rules for the first one whose target matches
- *	the name of gnode_from. gnode_from itself is skipped (a target
+ *	Search the pattern rules for the one whose target matches the
+ *	name of gnode_from with the shortest stem, as in GNU make (the
+ *	first one wins a tie). gnode_from itself is skipped (a target
  *	like "file-%.in" matches its own pattern), and so is the rule
  *	that required it, so that a rule like "%: %.c" does not chain
  *	on itself.
@@ -397,6 +398,8 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 	const struct pattern *pat;
 	size_t name_len;
 	size_t i;
+	const struct pattern *best_pattern = NULL;
+	size_t best_presuf_len = 0;
 
 	/* If no pattern GNode exists we do not try to search one */
 	if (npatterns == 0)
@@ -424,11 +427,17 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 		    pat->suffix_len) != 0)
 			continue;
 
-		*stem = name + pat->prefix_len;
-		*stem_len = name_len - pat->prefix_len - pat->suffix_len;
-		return pat->gn;
+		/* Found a match, check if it's the best one (shortest stem) */
+		if (best_pattern == NULL ||
+		    pat->prefix_len + pat->suffix_len > best_presuf_len) {
+			*stem = name + pat->prefix_len;
+			*stem_len = name_len - pat->prefix_len -
+			    pat->suffix_len;
+			best_presuf_len = pat->prefix_len + pat->suffix_len;
+			best_pattern = pat;
+		}
 	}
-	return NULL;
+	return best_pattern ? best_pattern->gn : NULL;
 }
 
 static bool
