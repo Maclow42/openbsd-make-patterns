@@ -78,6 +78,20 @@ static void expand_pattern(const char *, size_t ,
 static void
 Targ_RemoveTmpTarg(void *, void *unused UNUSED);
 
+static bool
+is_redefinition(const GNode *rule, const GNode *old)
+{
+	LstNode lr, lo;
+
+	if (strcmp(rule->name, old->name) != 0)
+		return false;
+	for (lr = Lst_First(&rule->children), lo = Lst_First(&old->children);
+	    lr != NULL && lo != NULL; lr = Lst_Adv(lr), lo = Lst_Adv(lo))
+		if (Lst_Datum(lr) != Lst_Datum(lo))
+			return false;
+	return lr == NULL && lo == NULL;
+}
+
 bool
 is_pattern(const GNode *gn)
 {
@@ -442,7 +456,23 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 		if (*stem_len == 0)
 			break;
 	}
-	return best_pattern ? best_pattern->gn : NULL;
+
+	if (best_pattern == NULL)
+		return NULL;
+
+	/* A :: rule given again with the same prerequisites is replaced
+	 * by its last definition */
+	if (best_pattern->gn->type & OP_DOUBLEDEP) {
+		for (i = best_pattern - patterns + 1; i != npatterns; i++) {
+			pat = &patterns[i];
+			if (pat->gn != gnode_from &&
+			    pat->gn != gnode_from->expanded_from &&
+			    is_redefinition(pat->gn, best_pattern->gn))
+				best_pattern = pat;
+		}
+	}
+	
+	return best_pattern->gn;
 }
 
 static bool
