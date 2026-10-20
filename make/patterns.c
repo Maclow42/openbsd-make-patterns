@@ -420,6 +420,11 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 		if (name_len < pat->prefix_len + pat->suffix_len)
 			continue;
 
+		/* Skip a pattern that cannot give a shorter stem */
+		if (best_pattern != NULL &&
+		    pat->prefix_len + pat->suffix_len <= best_presuf_len)
+			continue;
+
 		/* Check if the prefix matches. */
 		if (memcmp(name, pat->gn->name, pat->prefix_len) != 0)
 			continue;
@@ -427,15 +432,15 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 		    pat->suffix_len) != 0)
 			continue;
 
-		/* Found a match, check if it's the best one (shortest stem) */
-		if (best_pattern == NULL ||
-		    pat->prefix_len + pat->suffix_len > best_presuf_len) {
-			*stem = name + pat->prefix_len;
-			*stem_len = name_len - pat->prefix_len -
-			    pat->suffix_len;
-			best_presuf_len = pat->prefix_len + pat->suffix_len;
-			best_pattern = pat;
-		}
+		/* Found a match, the best one so far (shortest stem) */
+		*stem = name + pat->prefix_len;
+		*stem_len = name_len - pat->prefix_len - pat->suffix_len;
+		best_presuf_len = pat->prefix_len + pat->suffix_len;
+		best_pattern = pat;
+
+		/* An empty stem cannot be beaten */
+		if (*stem_len == 0)
+			break;
 	}
 	return best_pattern ? best_pattern->gn : NULL;
 }
