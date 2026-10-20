@@ -71,6 +71,7 @@
 static LIST		to_create; 	/* Targets to be made */
 Lst create = &to_create;
 bool 		allPrecious;	/* .PRECIOUS given on line by itself */
+bool 		allSecondary;	/* .SECONDARY given on line by itself */
 
 static bool	noBuiltins;	/* -r flag */
 static LIST	makefiles;	/* ordered list of makefiles to read */
@@ -676,6 +677,7 @@ main(int argc, char **argv)
 	noExecute = false;		/* Execute all commands */
 	keepgoing = false;		/* Stop on error */
 	allPrecious = false;		/* Remove targets when interrupted */
+	allSecondary = false;		/* Remove intermediate files */
 	queryFlag = false;		/* This is not just a check-run */
 	noBuiltins = false;		/* Read the built-in rules */
 	touchFlag = false;		/* Actually update targets */

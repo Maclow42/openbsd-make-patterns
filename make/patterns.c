@@ -41,6 +41,7 @@
 #include <string.h>
 #include <ohash.h>
 #include "defines.h"
+#include "extern.h"
 #include "dir.h"
 #include "error.h"
 #include "lst.h"
@@ -433,7 +434,7 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 static bool
 is_tmp_target(const GNode *gn)
 {
-	return gn->is_tmp || (gn->type & OP_INTERMEDIATE);
+	return gn->is_tmp || (gn->type & (OP_INTERMEDIATE|OP_SECONDARY));
 }
 
 /*-
@@ -500,7 +501,8 @@ Targ_RemoveTmpTarg(void *child, void *unused UNUSED)
 	 * was created, by its own commands or by those of a target made
 	 * by the same rule; one skipped or not made yet has no file. */
 	if (!is_tmp_target(gn) || !gn->tmp_needed ||
-	    !has_been_built(gn) || Targ_Precious(gn)) {
+	    !has_been_built(gn) || Targ_Precious(gn) ||
+	    (gn->type & OP_SECONDARY)) {
 		return;
 	}
 
@@ -525,8 +527,9 @@ Targ_RemoveAllTmpTargets(void)
 	unsigned int i;
 	struct ohash *h;
 
-	/* Only a temporary target made after all is removed. */
-	if (!tmp_made)
+	/* Only a temporary target made after all is removed, and none
+	 * if .SECONDARY is given */
+	if (!tmp_made || allSecondary)
 		return;
 
 	if (DEBUG(PATTERN))

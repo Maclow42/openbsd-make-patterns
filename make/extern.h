@@ -44,6 +44,7 @@ extern bool	ignoreErrors;	/* True if should ignore all errors */
 extern bool	beSilent;	/* True if should print no commands */
 extern bool	noExecute;	/* True if should execute nothing */
 extern bool	allPrecious;	/* True if every target is precious */
+extern bool	allSecondary;	/* True if no intermediate file is removed */
 extern bool	keepgoing;	/* True if should continue on unaffected
 				 * portions of the graph when have an error
 				 * in one portion */

@@ -192,6 +192,7 @@ targ_dump(bool full)
 	dump_special(t, ".PHONY", OP_PHONY);
 	dump_special(t, ".PRECIOUS", OP_PRECIOUS);
 	dump_special(t, ".INTERMEDIATE", OP_INTERMEDIATE);
+	dump_special(t, ".SECONDARY", OP_SECONDARY);
 	dump_special(t, ".SILENT", OP_SILENT);
 	dump_special(t, ".IGNORE", OP_IGNORE);
 	printf("#   Other target names:\n");

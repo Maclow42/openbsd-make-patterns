@@ -1,16 +1,27 @@
 # 16-secondary-target
-# Test .SECONDARY special target to preserve intermediate files
+# Test .SECONDARY special target: file.tmp is kept after the build, but
+# it is still an intermediate file, so once removed a second run does
+# not make it again
 
 # ========== TEST RULES ==========
-all: file.out
+all:
+	@$(MAKE) -s build > /dev/null 2>&1
+	@cp builds builds.first
+	@[ -f file.tmp ] && touch kept
+	@rm -f file.tmp
+	@$(MAKE) -s build > /dev/null 2>&1
+
+build: file.out
 
 .SECONDARY: file.tmp
 
 %.out: %.tmp
-	@cat $? > $@
+	@cat $< > $@
+	@echo $@ >> builds
 
 %.tmp: %.in
-	@cat $? > $@
+	@cat $< > $@
+	@echo $@ >> builds
 
 # ========== INPUT FILES ==========
 file.in:
@@ -18,14 +29,10 @@ file.in:
 
 # ========== VALIDATION RULES ==========
 test:
-	@ok=0; \
-	if [ -f file.out ] && grep -q "Test passed." file.out; then \
-		ok=`expr $$ok + 1`; \
-	fi; \
-	if [ -f file.tmp ] && grep -q "Test passed." file.tmp; then \
-		ok=`expr $$ok + 1`; \
-	fi; \
-	if [ $$ok -eq 2 ]; then \
+	@if [ -f file.out ] && grep -q "Test passed." file.out && \
+	    [ -f kept ] && [ ! -f file.tmp ] && \
+	    cmp -s builds.first builds && \
+	    [ "`cat builds | tr '\n' ' '`" = "file.tmp file.out " ]; then \
 		echo "[OK]"; \
 		exit 0; \
 	fi; \

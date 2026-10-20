@@ -207,6 +207,7 @@ static struct {
     { P(NODE_PHONY),		SPECIAL_PHONY,		OP_PHONY },
     { P(NODE_PRECIOUS),		SPECIAL_PRECIOUS,	OP_PRECIOUS },
     { P(NODE_RECURSIVE),	SPECIAL_MAKE,		OP_MAKE },
+    { P(NODE_SECONDARY),	SPECIAL_SECONDARY,	OP_SECONDARY },
     { P(NODE_SILENT),		SPECIAL_SILENT,		OP_SILENT },
     { P(NODE_SINGLESHELL),	SPECIAL_NOTHING,	0 },
     { P(NODE_SUFFIXES),		SPECIAL_SUFFIXES,	0 },
@@ -868,7 +869,7 @@ ParseDoDependency(const char *line)	/* the line to parse */
 
 	/* Several special targets have specific semantics with no source:
 	 *	.SUFFIXES 	clears out all old suffixes
-	 *	.PRECIOUS/.IGNORE/.SILENT
+	 *	.PRECIOUS/.IGNORE/.SILENT/.SECONDARY
 	 * 			apply to all target
 	 *	.PATH 		clears out all search paths.  */
 	if (!*line) {
@@ -878,6 +879,9 @@ ParseDoDependency(const char *line)	/* the line to parse */
 			break;
 		case SPECIAL_PRECIOUS:
 			allPrecious = true;
+			break;
+		case SPECIAL_SECONDARY:
+			allSecondary = true;
 			break;
 		case SPECIAL_IGNORE:
 			ignoreErrors = true;

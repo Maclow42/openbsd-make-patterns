@@ -101,6 +101,7 @@
 #define SPECIAL_CHEAP		32U
 #define SPECIAL_EXPENSIVE	33U
 #define SPECIAL_INTERMEDIATE	34U
+#define SPECIAL_SECONDARY	35U
 
 struct GNode_ {
     unsigned int type;		/* node type (see the OP flags, below) */
@@ -228,6 +229,7 @@ struct command
 #define OP_EXPENSIVE	0x04000000  /* Recursive job, don't run in parallel */
 #define OP_INTERMEDIATE 0x08000000  /* Remove the target after the build,
 				     * if this run created it */
+#define OP_SECONDARY	0x10000000  /* Intermediate file, but never removed */
 
 /*
  * OP_NOP will return true if the node with the given type was not the
