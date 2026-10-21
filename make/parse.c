@@ -350,7 +350,6 @@ ParseDoOp(GNode **gnp, unsigned int op)
 	}
 	/* Preserve possible special flags already applied to the operator */
 	gn->type |= op;
-	may_register_as_pattern(gn);
 	return 1;
 }
 
@@ -358,6 +357,7 @@ static void
 ParseDoSpecial(GNode *gn, unsigned int special_op)
 {
 	gn->type |= special_op;
+	apply_op_to_pattern_rules(gn, special_op);
 }
 
 /*-
@@ -480,6 +480,8 @@ ParseDoSrc(
 			    	apply_op(targets, tOp, Lst_Datum(ln));
 			}
 		}
+		if (tOp != 0)
+			apply_op_to_pattern_rules(gn, tOp);
 		break;
 	}
 
@@ -537,6 +539,8 @@ add_target_node(const char *line, const char *end)
 	GNode *gn;
 
 	gn = Suff_ParseAsTransform(line, end);
+	if (gn == NULL)
+		gn = Pattern_ParseAsRule(line, end);
 
 	if (gn == NULL) {
 		gn = Targ_FindNodei(line, end, TARG_CREATE);
@@ -1018,24 +1022,15 @@ ParseDoDependency(const char *line)	/* the line to parse */
  *	we note that we got double commands (in case we actually get to run 
  *	that ambiguous target).
  *
- *	Note this does not apply to :: dependency lines, since those
+ *	Note this does not apply to :: dependency lines, since those 
  *	will generate fresh cloned nodes and add them to the cohorts
  *	field of the main node.
- *
- *	Pattern rules follow gnu make instead: a new definition replaces
- *	the old commands, so the last rule wins. Old commands can't be
- *	freed, since other targets of the same rule may reference them.
  */
 static void
 ParseAddCmd(void *gnp, void *cmd)
 {
 	GNode *gn = gnp;
 
-	if ((gn->type & OP_HAS_COMMANDS) && is_pattern(gn)) {
-		Lst_Destroy(&gn->commands, NOFREE);
-		Lst_Init(&gn->commands);
-		gn->type &= ~OP_HAS_COMMANDS;
-	}
 	if (!(gn->type & OP_HAS_COMMANDS))
 		Lst_AtEnd(&gn->commands, cmd);
 	else

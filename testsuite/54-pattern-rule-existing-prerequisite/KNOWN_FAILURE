@@ -1,0 +1,1 @@
+a pattern rule whose prerequisite cannot be found is still chosen, GNU make tries the next one

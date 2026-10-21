@@ -40,6 +40,7 @@
 #include "lst.h"
 #include "timestamp.h"
 #include "dir.h"
+#include "patterns.h"
 
 /* since qsort doesn't have user data, this needs to be a global... */
 static ptrdiff_t cmp_offset;
@@ -183,11 +184,22 @@ targ_dump(bool full)
 {
 	GNode **t = sort_ohash_by_name(targets_hash());
 	unsigned int i;
+	GNode *rule;
+	size_t r;
 
 	printf("#   Input graph:\n");
 	for (i = 0; t[i] != NULL; i++)
 		TargPrintNode(t[i], full);
 	printf("\n\n");
+
+	/* Pattern rules are not in the targets hash */
+	for (r = 0; (rule = next_pattern_rule(&r)) != NULL;) {
+		if (r == 1)
+			printf("#   Pattern rules:\n");
+		TargPrintNode(rule, full);
+	}
+	if (r != 0)
+		printf("\n\n");
 
 	dump_special(t, ".PHONY", OP_PHONY);
 	dump_special(t, ".PRECIOUS", OP_PRECIOUS);

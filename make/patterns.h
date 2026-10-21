@@ -30,7 +30,9 @@
 
 extern void Pattern_Init(void);
 extern bool is_pattern(const GNode *);
-extern void may_register_as_pattern(GNode *);
+extern GNode *next_pattern_rule(size_t *);
+extern GNode *Pattern_ParseAsRule(const char *, const char *);
+extern void apply_op_to_pattern_rules(const GNode *, unsigned int);
 extern char *find_file_hash_with_pattern(struct ohash *, const char *);
 extern bool match_pattern(const char *, const char *);
 extern GNode *Targ_FindPatternMatchingNode(const GNode *, const char **,

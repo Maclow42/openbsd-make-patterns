@@ -1,2 +1,0 @@
-rules for one target with different prerequisites are merged, GNU make keeps them apart
-(%.o: %.c and %.o: %.cpp share one %.o node, so the existing file.c is not chosen)

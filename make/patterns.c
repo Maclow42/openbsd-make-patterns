@@ -92,41 +92,98 @@ is_redefinition(const GNode *rule, const GNode *old)
 	return lr == NULL && lo == NULL;
 }
 
+/* Was gn expanded from rule, or from a rule that rule redefines? */
+static bool
+is_from_rule(const GNode *gn, const GNode *rule)
+{
+	return gn->expanded_from != NULL &&
+	    is_redefinition(rule, gn->expanded_from);
+}
+
+/* Returns the pattern rule *i (0 to start) and moves to the next one, or
+ * returns NULL once all of them are seen */
+GNode *
+next_pattern_rule(size_t *i)
+{
+	if (*i == npatterns)
+		return NULL;
+	return patterns[(*i)++].gn;
+}
+
 bool
 is_pattern(const GNode *gn)
 {
 	return strchr(gn->name, '%') != NULL;
 }
 
-/*
- * Called on each target of a dependency line: only targets of a rule
- * are patterns, a '%' prerequisite is not.
- */
-void
-may_register_as_pattern(GNode *gn)
+static void
+register_pattern(GNode *gn)
 {
 	struct pattern *pat;
 	const char *percent;
-	size_t i;
 
 	percent = strchr(gn->name, '%');
-	if (percent == NULL)
-		return;
-
-	for (i = 0; i != npatterns; i++)
-		if (patterns[i].gn == gn)
-			return;
-
 	if (npatterns == maxpatterns) {
 		maxpatterns *= 2;
 		patterns = ereallocarray(patterns, maxpatterns,
 		    sizeof(*patterns));
 	}
+
 	pat = &patterns[npatterns++];
 	pat->gn = gn;
 	pat->prefix_len = percent - gn->name;
 	pat->suffix = percent + 1;
 	pat->suffix_len = strlen(pat->suffix);
+}
+
+/*-
+ *-----------------------------------------------------------------------
+ * Pattern_ParseAsRule --
+ *	Like Suff_ParseAsTransform for a transformation rule, create the
+ *	node of a pattern rule if the target line of a dependency
+ *	line has a '%': a pattern rule is not a target, so its node is
+ *	not in the targets hash. As in GNU make, each dependency line
+ *	gets a node of its own, with its own prerequisites and commands.
+ *	The node gets the attributes already given to the pattern target
+ *	(see apply_op_to_pattern_rules), and is never the main target.
+ *
+ * Returns:
+ *	The new node, or NULL if line..end is not a pattern.
+ *-----------------------------------------------------------------------
+ */
+GNode *
+Pattern_ParseAsRule(const char *line, const char *end)
+{
+	GNode *gn, *attributes;
+
+	if (memchr(line, '%', end - line) == NULL)
+		return NULL;
+
+	gn = Targ_NewGNi(line, end);
+	attributes = Targ_FindNodei(line, end, TARG_NOCREATE);
+	gn->type = OP_NOTMAIN;
+	if (attributes != NULL)
+		gn->type |= attributes->type & ~OP_OPMASK;
+	register_pattern(gn);
+	return gn;
+}
+
+/*
+ * Applies the attribute op, given to the pattern target gn, to all of its
+ * rules. The node of its name in the targets hash keeps it for the rules
+ * of the next dependency lines.
+ */
+void
+apply_op_to_pattern_rules(const GNode *gn, unsigned int op)
+{
+	size_t i;
+
+	if (!is_pattern(gn))
+		return;
+	Targ_FindNode(gn->name, TARG_CREATE)->type |= op;
+	for (i = 0; i != npatterns; i++)
+		if (strcmp(patterns[i].gn->name, gn->name) == 0)
+			patterns[i].gn->type |= op;
 }
 
 void
@@ -391,11 +448,11 @@ match_pattern(const char *name, const char *pattern)
  *-----------------------------------------------------------------------
  * Targ_FindPatternMatchingNode --
  *	Search the pattern rules for the one whose target matches the
- *	name of gnode_from with the shortest stem, as in GNU make (the
- *	first one wins a tie). gnode_from itself is skipped (a target
- *	like "file-%.in" matches its own pattern), and so is the rule
- *	that required it, so that a rule like "%: %.c" does not chain
- *	on itself.
+ *	name of gnode_from with the shortest stem. The rule that
+ *	required gnode_from is skipped, with its redefinitions,
+ *	so that a rule like "%: %.c" does not chain on itself.
+ *	A file named like a pattern, e.g. "file-%.in", is made by its
+ *	own rule, with "%" as the stem.
  *
  * Returns:
  *	The matching GNode, or NULL if no match found.
@@ -425,9 +482,10 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 	for (i = 0; i != npatterns; i++) {
 		pat = &patterns[i];
 
-		/* Prevent matching the node itself or its expanded form */
-		if (pat->gn == gnode_from ||
-		    pat->gn == gnode_from->expanded_from)
+		/* Prevent matching the rule it was expanded from, or a
+		 * redefinition of it, and skip a rule without commands */
+		if (is_from_rule(gnode_from, pat->gn) ||
+		    Lst_IsEmpty(&pat->gn->commands))
 			continue;
 
 		/* Check if the name is long enough to match the pattern. */
@@ -460,16 +518,14 @@ Targ_FindPatternMatchingNode(const GNode *gnode_from, const char **stem,
 	if (best_pattern == NULL)
 		return NULL;
 
-	/* A :: rule given again with the same prerequisites is replaced
+	/* A rule given again with the same prerequisites is replaced
 	 * by its last definition */
-	if (best_pattern->gn->type & OP_DOUBLEDEP) {
-		for (i = best_pattern - patterns + 1; i != npatterns; i++) {
-			pat = &patterns[i];
-			if (pat->gn != gnode_from &&
-			    pat->gn != gnode_from->expanded_from &&
-			    is_redefinition(pat->gn, best_pattern->gn))
-				best_pattern = pat;
-		}
+	for (i = best_pattern - patterns + 1; i != npatterns; i++) {
+		pat = &patterns[i];
+		if (!is_from_rule(gnode_from, pat->gn) &&
+		    !Lst_IsEmpty(&pat->gn->commands) &&
+		    is_redefinition(pat->gn, best_pattern->gn))
+			best_pattern = pat;
 	}
 	
 	return best_pattern->gn;
