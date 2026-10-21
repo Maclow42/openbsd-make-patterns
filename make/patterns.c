@@ -1,7 +1,7 @@
 /*	$OpenBSD$ */
 
 /*
- * Copyright (c) 2025 Thibault Colcomb <thibault.colcomb@epita.fr>
+ * Copyright (c) 2025 Thibault Colcomb <thibault.colcomb@hotmail.com>
  * Copyright (c) 2025 Marc Espie <espie@openbsd.org>
  *
  * Support for gnu-make style % patterns
